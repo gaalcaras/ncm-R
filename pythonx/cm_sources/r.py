@@ -6,6 +6,7 @@ by Gabriel Alcaras
 """
 
 import re
+import neovim
 from os import listdir
 
 from cm import register_source, getLogger, Base  # pylint: disable=E0401
@@ -114,6 +115,17 @@ class Source(Base):
         self._obj_matches = list()
 
         self.get_all_pkg_matches()
+        self._start_nvimr()
+
+    def _start_nvimr(self):
+        """Start nvim-R"""
+
+        try:
+            if self.nvim.eval('g:SendCmdToR') == "function('SendCmdToR_fake')":
+                self.nvim.funcs.StartR('R')
+        except neovim.api.nvim.NvimError as ex:
+            self.message('error', 'Could not start nvim-R :(')
+            LOGGER.exception(ex)
 
     def update_loaded_pkgs(self):
         """Update list of loaded R packages
