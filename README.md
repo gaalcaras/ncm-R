@@ -10,11 +10,13 @@ For now, ncm-R provides really basic features of completion:
 + objects from the global R environment
 + functions from currently loaded packages
 + packages inside `library()` and `require()`
++ arguments inside functions
 + expand syntax snippets when pressing Tab (if [UltiSnips](https://github.com/sirver/UltiSnips)
     is installed):
     + `dataframe` -> `dataframe$`
     + `function` -> `function(arg1, arg2, ...)` (only shows mandatory arguments)
     + `package` -> `package::`
+    + `argument` -> `argument = DEFAULT_VALUE`
 
 ## Installation
 

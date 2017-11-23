@@ -20,7 +20,7 @@ register_source(name='R',
                 scoping=True,
                 scopes=['r'],
                 early_cache=1,
-                cm_refresh_patterns=[r'\$', r'\(', r'"', r"'"],)
+                cm_refresh_patterns=[r'\$', r'\(', r'"', r"'", r',\s'],)
 
 
 def create_match(word='', struct='', pkg='', info=''):
@@ -50,8 +50,17 @@ def create_match(word='', struct='', pkg='', info=''):
             menu += ', '.join(args) + ')'
 
             match['menu'] = menu
-            match['args'] = args
             match['snippet'] = make_func_snippet(word, args)
+
+            margs = list()
+            for arg in args:
+                if arg in ('NO_ARGS', '...'):
+                    continue
+
+                margs.append(create_match(word=arg, struct='argument'))
+
+            match['args'] = margs
+
         else:
             match['snippet'] = word + '($1)'
 
@@ -61,13 +70,26 @@ def create_match(word='', struct='', pkg='', info=''):
     if struct == 'package':
         match['snippet'] = word + '::$1'
 
+    if struct == 'argument':
+        word_parts = [w.strip() for w in word.split('=')]
+        lhs = word_parts[0]
+        rhs = word_parts[1] if len(word_parts) == 2 else ''
+
+        match['word'] = lhs
+        match['menu'] = '= ' + rhs if rhs else ''
+
+        if rhs:
+            match['snippet'] = lhs + ' = ${1:' + rhs + '}'
+        else:
+            match['snippet'] = lhs + ' = $1'
+
     return match
 
 
 def make_func_snippet(func='', args=None):
     """Create function snippet with its arguments
 
-    :word: the function name
+    :func: the function name
     :args: function arguments
     :returns: snippet
     """
@@ -130,6 +152,25 @@ def to_matches(lines):
             cm_list.append(match)
 
     return cm_list
+
+
+def filter_matches_arg(ncm_matches, func=""):
+    """Filter list of ncm matches of arguments for func
+
+    :ncm_matches: list of matches
+    :func: function name
+    :returns: filtered list of ncm matches
+    """
+
+    if not func:
+        return ncm_matches
+
+    args = [m['args'] for m in ncm_matches if m['word'] == func]
+
+    if args:
+        return args[0]
+
+    return ['']
 
 
 def filter_matches_struct(ncm_matches, struct=""):
@@ -324,19 +365,27 @@ class Source(Base):
 
         return matches
 
-    def get_func_matches(self, funcname, word):
+    def get_func_matches(self, func, word):
         """Return matches when completion happens inside function
 
-        :funcname: the name of function
+        :func: the name of function
         :word: word typed
         :returns: list of ncm matches
         """
 
         matches = list()
 
-        if funcname in ('library', 'require'):
+        if func in ('library', 'require'):
             return self._pkg_installed
 
+        for source in [self._fnc_matches, self._obj_matches]:
+            args = filter_matches_arg(source, func)
+            matches.extend(args)
+
+            if len(args) > 1:
+                break
+
+        LOGGER.info('args: %s', matches)
         matches.extend(self.get_matches(word))
 
         return matches
@@ -346,15 +395,14 @@ class Source(Base):
 
         word_match = re.search(self.R_WORD, ctx['typed'])
         func_match = re.search(self.R_FUNC, ctx['typed'])
-        word, func = ['', '']
 
-        if word_match:
-            word = word_match[0]
-            LOGGER.info('word: %s', word)
+        word = word_match[0] if word_match else ''
+        func = func_match.group(1) if func_match else ''
+        LOGGER.info('word: "%s", func: "%s"', word, func)
 
-        if func_match:
-            func = func_match.group(1)
-            LOGGER.info('func: %s', func)
+        isinquot = re.search('["\']' + word + '$', ctx['typed'])
+        if isinquot:
+            return
 
         if func:
             matches = self.get_func_matches(func, word)
