@@ -9,6 +9,7 @@ completion to your R code.
 For now, ncm-R provides really basic features of completion:
 + objects from the global R environment
 + functions from currently loaded packages
++ packages inside `library()` and `require()`
 
 ## Installation
 
