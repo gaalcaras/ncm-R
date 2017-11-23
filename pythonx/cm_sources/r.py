@@ -23,14 +23,14 @@ register_source(name='R',
                 cm_refresh_patterns=[r'\$', r'\(', r'"', r"'"],)
 
 
-def create_match(word='', struct='', pkg=''):
+def create_match(word='', struct='', pkg='', info=''):
     """Create ncm match dictionnary
 
     :word: word (appears in menu)
     :struct: type (str() in R)
     :pkg: pkg
+    :info: additional information about the object (args, doc, etc.)
     :returns: ncm match
-
     """
 
     if not word and not struct:
@@ -43,7 +43,17 @@ def create_match(word='', struct='', pkg=''):
         match['menu'] += ' [' + pkg + ']'
 
     if struct == 'function':
-        match['snippet'] = word + '($1)'
+
+        if info:
+            args = get_func_args(info)
+            menu = pkg + '::' + match['word'] + '('
+            menu += ', '.join(args) + ')'
+
+            match['menu'] = menu
+            match['args'] = args
+            match['snippet'] = make_func_snippet(word, args)
+        else:
+            match['snippet'] = word + '($1)'
 
     if struct in ('data.frame', 'tbl_df'):
         match['snippet'] = word + '$$1'
@@ -52,6 +62,54 @@ def create_match(word='', struct='', pkg=''):
         match['snippet'] = word + '::$1'
 
     return match
+
+
+def make_func_snippet(func='', args=None):
+    """Create function snippet with its arguments
+
+    :word: the function name
+    :args: function arguments
+    :returns: snippet
+    """
+    snippet = func + '('
+
+    if args[0] == 'NO_ARGS':
+        return snippet + ')'
+
+    # Fill snippet with mandatory arguments
+    mand_args = [a for a in args if '=' not in a]
+
+    for numarg, arg in enumerate(mand_args):
+        if arg in ('...') and numarg > 0:
+            continue
+
+        snippet += '${' + str(numarg+1) + ':' + arg + '}, '
+
+    if len(args) > 1:
+        snippet = snippet[:-2]
+    else:
+        snippet += '$1'
+
+    snippet = snippet + ')'
+
+    return snippet
+
+
+def get_func_args(info=''):
+    """Return function arguments based on omniline info
+
+    :info: information from omni files
+    :returns: ncm match with info entry
+    """
+    if not info:
+        return list()
+
+    splits = re.split('\x08', info)
+    args = splits[0]
+    args = re.split('\t', args)
+    args = [arg.replace('\x07', ' = ') for arg in args]
+
+    return args
 
 
 def to_matches(lines):
@@ -65,7 +123,8 @@ def to_matches(lines):
 
     for line in lines:
         parts = re.split('\x06', line)
-        match = create_match(word=parts[0], struct=parts[1], pkg=parts[3])
+        match = create_match(word=parts[0], struct=parts[1], pkg=parts[3],
+                             info=parts[4])
 
         if match:
             cm_list.append(match)

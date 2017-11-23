@@ -13,7 +13,7 @@ For now, ncm-R provides really basic features of completion:
 + expand syntax snippets when pressing Tab (if [UltiSnips](https://github.com/sirver/UltiSnips)
     is installed):
     + `dataframe` -> `dataframe$`
-    + `function` -> `function()`
+    + `function` -> `function(arg1, arg2, ...)` (only shows mandatory arguments)
     + `package` -> `package::`
 
 ## Installation
