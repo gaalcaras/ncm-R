@@ -23,6 +23,37 @@ register_source(name='R',
                 cm_refresh_patterns=[r'\$', r'\(', r'"', r"'"],)
 
 
+def create_match(word='', struct='', pkg=''):
+    """Create ncm match dictionnary
+
+    :word: word (appears in menu)
+    :struct: type (str() in R)
+    :pkg: pkg
+    :returns: ncm match
+
+    """
+
+    if not word and not struct:
+        return None
+
+    match = dict(word=word, menu=struct, struct=struct)
+
+    if pkg:
+        match['pkg'] = pkg
+        match['menu'] += ' [' + pkg + ']'
+
+    if struct == 'function':
+        match['snippet'] = word + '($1)'
+
+    if struct in ('data.frame', 'tbl_df'):
+        match['snippet'] = word + '$$1'
+
+    if struct == 'package':
+        match['snippet'] = word + '::$1'
+
+    return match
+
+
 def to_matches(lines):
     """Transform omni lists from Nvim-R into list of NCM matches
 
@@ -34,10 +65,10 @@ def to_matches(lines):
 
     for line in lines:
         parts = re.split('\x06', line)
-        cm_list.append(dict(word=parts[0],
-                            menu=parts[1] + ' [' + parts[3] + ']',
-                            struct=parts[2],
-                            pkg=parts[3]))
+        match = create_match(word=parts[0], struct=parts[1], pkg=parts[3])
+
+        if match:
+            cm_list.append(match)
 
     return cm_list
 
@@ -187,9 +218,11 @@ class Source(Base):
         comps = [f for f in listdir(compdir) if 'omnils' in f]
 
         for filename in comps:
-            match = dict(word=re.search(r'_(\w+)_', filename)[1],
-                         menu='package')
-            self._pkg_installed.append(match)
+            match = create_match(word=re.search(r'_(\w+)_', filename)[1],
+                                 struct='package')
+
+            if match:
+                self._pkg_installed.append(match)
 
         compfiles = [compdir + '/' + comp for comp in comps]
 
@@ -226,6 +259,7 @@ class Source(Base):
             # functions from loaded R packages
             self.update_func_matches()
             matches.extend(self._fnc_matches)
+            matches.extend(self._pkg_installed)
 
             matches = filter_matches(matches, word, hide='$')
 
