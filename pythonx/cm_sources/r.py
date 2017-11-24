@@ -358,9 +358,9 @@ class Source(Base):
         obj_m = self._obj_matches
 
         if pipe:
+            # Inside data pipeline, keep variables from piped data
             obj_m = filter_matches(obj_m, pipe + '$', rm_typed=True)
-
-        if word:
+        else:
             if '$' in word:
                 # If we're looking inside a data frame or tibble, only return
                 # its variables
@@ -441,21 +441,24 @@ class Source(Base):
         """Refresh NCM list of matches"""
 
         word_match = re.search(self.R_WORD, ctx['typed'])
-        func_match = re.search(self.R_FUNC, ctx['typed'])
-
         word = word_match[0] if word_match else ''
-        func = func_match.group(1) if func_match else ''
-        pipe = self.get_pipe(ctx['lnum'], ctx['col'])
-
-        LOGGER.info('word: "%s", func: "%s", pipe: %s', word, func, pipe)
 
         isinquot = re.search('["\']' + word + '$', ctx['typed'])
         if isinquot:
             return
 
+        func_match = re.search(self.R_FUNC, ctx['typed'])
+        func = func_match.group(1) if func_match else ''
+
+        pipe = self.get_pipe(ctx['lnum'], ctx['col'])
+        LOGGER.info('word: "%s", func: "%s", pipe: %s', word, func, pipe)
+
         if func:
             matches = self.get_func_matches(func, word, pipe)
         else:
+            if not word:
+                return
+
             matches = self.get_matches(word)
 
         LOGGER.debug("matches: %s", matches)
