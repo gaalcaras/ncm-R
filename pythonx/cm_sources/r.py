@@ -222,7 +222,7 @@ def filter_matches(ncm_matches, typed="", hide="", rm_typed=False):
     filtered_list = list()
 
     for match in ncm_matches:
-        if typed and typed in match['word']:
+        if typed and re.match(re.escape(typed), match['word']):
             if hide and hide in match['word']:
                 continue
 
