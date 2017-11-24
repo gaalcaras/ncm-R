@@ -234,7 +234,9 @@ class Source(Base):
     """Completion Manager Source for R language"""
 
     R_WORD = re.compile(r'[\w\$_\.]+$')
-    R_FUNC = re.compile(r'([^\(]+)\([^\(]*')
+    R_FUNC = re.compile(r'([^\(^\s]+)\([^\(]*')
+    R_LINE = re.compile(r'[^\(]+\s?(<-|=)\s?')
+    R_PIPE = re.compile(r'([\w_\.\$]+)\s?%>%')
 
     def __init__(self, nvim):
         super(Source, self).__init__(nvim)
@@ -340,55 +342,96 @@ class Source(Base):
             funcs = filter_matches_struct(funcs, 'function')
             self._fnc_matches = funcs
 
-    def get_matches(self, word):
+    def get_matches(self, word, pipe=None):
         """Return function and object matches based on given word
 
         :word: string to filter matches with
+        :pipe: piped data
         :returns: list of ncm matches
         """
 
         self.get_all_obj_matches()
-        matches = self._obj_matches
+        obj_m = self._obj_matches
 
-        if '$' in word:
-            # If we're looking inside a data frame or tibble, only return
-            # its variables
-            matches = filter_matches(matches, word, rm_typed=True)
-        else:
-            # Otherwise, return objects (hiding data frame variables) and
-            # functions from loaded R packages
-            self.update_func_matches()
-            matches.extend(self._fnc_matches)
-            matches.extend(self._pkg_installed)
+        if pipe:
+            obj_m = filter_matches(obj_m, pipe + '$', rm_typed=True)
 
-            matches = filter_matches(matches, word, hide='$')
+        if word:
+            if '$' in word:
+                # If we're looking inside a data frame or tibble, only return
+                # its variables
+                obj_m = filter_matches(obj_m, word, rm_typed=True)
+            else:
+                # Otherwise, hide what's inside data.frames
+                obj_m = filter_matches(obj_m, word, hide='$')
+
+        matches = obj_m
+
+        # Get functions from loaded R packages
+        self.update_func_matches()
+        func_m = self._fnc_matches
+        func_m.extend(self._pkg_installed)
+        func_m = filter_matches(func_m, word)
+
+        matches.extend(func_m)
 
         return matches
 
-    def get_func_matches(self, func, word):
+    def get_func_matches(self, func, word, pipe=None):
         """Return matches when completion happens inside function
 
         :func: the name of function
         :word: word typed
+        :pipe: piped data
         :returns: list of ncm matches
         """
-
-        matches = list()
 
         if func in ('library', 'require'):
             return self._pkg_installed
 
+        args = list()
         for source in [self._fnc_matches, self._obj_matches]:
             args = filter_matches_arg(source, func)
-            matches.extend(args)
+            args.extend(args)
 
             if len(args) > 1:
                 break
 
-        LOGGER.info('args: %s', matches)
-        matches.extend(self.get_matches(word))
+        objs = self.get_matches(word, pipe)
+
+        matches = list()
+        if pipe:
+            matches.extend(objs+args)
+        else:
+            matches.extend(args+objs)
 
         return matches
+
+    def get_pipe(self, numline, numcol):
+        """Check if completion happens inside a pipe, if so, return the piped
+        data
+
+        :numline: line number
+        :numcol: column number
+        :returns: piped data
+        """
+
+        no_pipe = 0
+        for numl in range(numline-1, -1, -1):
+            line = self.nvim.current.buffer[numl]
+            line = line[0:numcol] if numl == numline else line
+
+            has_pipe = re.search(self.R_PIPE, line)
+
+            if '%>%' in line:
+                if has_pipe:
+                    return has_pipe.group(1)
+            else:
+                no_pipe += 1
+                new_line = re.match(self.R_LINE, line)
+
+                if new_line or no_pipe == 2:
+                    return None
 
     def cm_refresh(self, info, ctx,):
         """Refresh NCM list of matches"""
@@ -398,16 +441,18 @@ class Source(Base):
 
         word = word_match[0] if word_match else ''
         func = func_match.group(1) if func_match else ''
-        LOGGER.info('word: "%s", func: "%s"', word, func)
+        pipe = self.get_pipe(ctx['lnum'], ctx['col'])
+
+        LOGGER.info('word: "%s", func: "%s", pipe: %s', word, func, pipe)
 
         isinquot = re.search('["\']' + word + '$', ctx['typed'])
         if isinquot:
             return
 
         if func:
-            matches = self.get_func_matches(func, word)
+            matches = self.get_func_matches(func, word, pipe)
         else:
             matches = self.get_matches(word)
 
-        LOGGER.debug("matches: [%s]", matches)
+        LOGGER.debug("matches: %s", matches)
         self.complete(info, ctx, ctx['startcol'], matches)
