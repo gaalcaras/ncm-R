@@ -158,11 +158,12 @@ def to_matches(lines):
     return cm_list
 
 
-def filter_matches_arg(ncm_matches, func=""):
+def filter_matches_arg(ncm_matches, func="", pipe=None):
     """Filter list of ncm matches of arguments for func
 
     :ncm_matches: list of matches
     :func: function name
+    :pipe: piped data
     :returns: filtered list of ncm matches
     """
 
@@ -172,6 +173,10 @@ def filter_matches_arg(ncm_matches, func=""):
     args = [m['args'] for m in ncm_matches if m['word'] == func]
 
     if args:
+        if pipe:
+            # In data pipelines, hide arguments like ".data = "
+            return [a for a in args[0] if '.' not in a['word']]
+
         return args[0]
 
     return ['']
@@ -395,7 +400,7 @@ class Source(Base):
 
         args = list()
         for source in [self._fnc_matches, self._obj_matches]:
-            args = filter_matches_arg(source, func)
+            args = filter_matches_arg(source, func, pipe)
             args.extend(args)
 
             if len(args) > 1:
