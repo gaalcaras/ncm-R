@@ -36,17 +36,20 @@ def create_match(word='', struct='', pkg='', info=''):
     if not word and not struct:
         return None
 
-    match = dict(word=word, menu=struct, struct=struct)
+    match = dict(word=word,
+                 menu='{:10}'.format(struct[0:10]),
+                 struct=struct)
 
     if pkg:
         match['pkg'] = pkg
-        match['menu'] += ' [' + pkg + ']'
 
     if struct == 'function':
 
         if info:
             args = get_func_args(info)
-            menu = pkg + '::' + match['word'] + '('
+            pkg_name = '{' + pkg + '}'
+            menu = '{:10}'.format(pkg_name[0:10])
+            menu += ' ' + match['word'] + '('
             menu += ', '.join(args) + ')'
 
             match['menu'] = menu
@@ -76,7 +79,8 @@ def create_match(word='', struct='', pkg='', info=''):
         rhs = word_parts[1] if len(word_parts) == 2 else ''
 
         match['word'] = lhs
-        match['menu'] = '= ' + rhs if rhs else ''
+        match['menu'] = '{:10}'.format('param')
+        match['menu'] += ' = ' + rhs if rhs else ''
 
         if rhs:
             match['snippet'] = lhs + ' = ${1:' + rhs + '}'
