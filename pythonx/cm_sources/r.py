@@ -68,7 +68,7 @@ def create_match(word='', struct='', pkg='', info=''):
             match['snippet'] = word + '($1)'
 
     if struct in ('data.frame', 'tbl_df'):
-        match['snippet'] = word + '$$1'
+        match['snippet'] = word + ' %>% $1'
 
     if struct == 'package':
         match['snippet'] = word + '::$1'

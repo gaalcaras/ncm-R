@@ -16,7 +16,7 @@ Features:
     + **variables inside data transformation pipelines** (`%>%`)
 + **expand syntax snippets** when pressing Tab (if [UltiSnips](https://github.com/sirver/UltiSnips)
     is installed):
-    + `dataframe` -> `dataframe$`
+    + `dataframe` -> `dataframe %>% `
     + `function` -> `function(arg1, arg2, ...)` (expands mandatory arguments
         only)
     + `package` -> `package::`
