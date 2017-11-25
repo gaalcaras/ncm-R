@@ -10,7 +10,8 @@ Features:
 
 + Completion support for:
     + **objects** from the global R environment
-    + **functions** from currently loaded packages
+    + **functions** from all currently loaded packages or from precise package
+        with `package::`
     + **packages** inside `library()` and `require()`
     + **arguments** inside functions
     + **variables inside data transformation pipelines** (`%>%`)

@@ -20,7 +20,8 @@ register_source(name='R',
                 scoping=True,
                 scopes=['r'],
                 early_cache=1,
-                cm_refresh_patterns=[r'\$', r'\(', r'"', r"'", r',\s'],)
+                cm_refresh_patterns=[r'\$', r'\(', r'"', r"'", r',\s',
+                                     r'::'])
 
 
 def create_match(word='', struct='', pkg='', info=''):
@@ -40,8 +41,7 @@ def create_match(word='', struct='', pkg='', info=''):
                  menu='{:10}'.format(struct[0:10]),
                  struct=struct)
 
-    if pkg:
-        match['pkg'] = pkg
+    match['pkg'] = pkg if pkg else ''
 
     if struct == 'function':
 
@@ -201,7 +201,7 @@ def filter_matches_struct(ncm_matches, struct=""):
 def filter_matches_pkgs(ncm_matches, pkg=None):
     """Filter list of ncm matches with R packages
 
-    :ncm_matches: list of matches (dictionaries)
+    :ncm_matches: list of matches
     :pkg: only show matches from given R packages
     :returns: filtered list of ncm matches
     """
@@ -209,6 +209,7 @@ def filter_matches_pkgs(ncm_matches, pkg=None):
     if not pkg:
         return ncm_matches
 
+    pkg = [pkg] if isinstance(pkg, str) else pkg
     ncm_matches = [d for d in ncm_matches if any(p in d['pkg'] for p in pkg)]
 
     return ncm_matches
@@ -243,7 +244,7 @@ class Source(Base):
     """Completion Manager Source for R language"""
 
     R_WORD = re.compile(r'[\w\$_\.]+$')
-    R_FUNC = re.compile(r'([^\(^\s]+)\([^\(]*')
+    R_FUNC = re.compile(r'((?P<pkg>[\w\._]+)::)?((?P<fnc>[\w\._]+)\()?[^\(]*$')
     R_LINE = re.compile(r'[^\(]+\s?(<-|=)\s?')
     R_PIPE = re.compile(r'([\w_\.\$]+)\s?%>%')
 
@@ -345,16 +346,18 @@ class Source(Base):
 
     def update_func_matches(self):
         """Update function matches if necessary"""
+
         if self.update_loaded_pkgs():
             LOGGER.info('Update Loaded R packages: %s', self._pkg_loaded)
             funcs = filter_matches_pkgs(self._pkg_matches, self._pkg_loaded)
             funcs = filter_matches_struct(funcs, 'function')
             self._fnc_matches = funcs
 
-    def get_matches(self, word, pipe=None):
+    def get_matches(self, word, pkg=None, pipe=None):
         """Return function and object matches based on given word
 
         :word: string to filter matches with
+        :pkg: only show functions from R package
         :pipe: piped data
         :returns: list of ncm matches
         """
@@ -378,9 +381,11 @@ class Source(Base):
 
         # Get functions from loaded R packages
         self.update_func_matches()
-        func_m = self._fnc_matches
+        func_m = filter_matches_pkgs(self._fnc_matches, pkg)
         func_m.extend(self._pkg_installed)
-        func_m = filter_matches(func_m, word)
+
+        if not pkg or (pkg and word):
+            func_m = filter_matches(func_m, word)
 
         matches.extend(func_m)
 
@@ -406,7 +411,7 @@ class Source(Base):
             if len(args) > 1:
                 break
 
-        objs = self.get_matches(word, pipe)
+        objs = self.get_matches(word, pipe=pipe)
 
         matches = list()
         if pipe:
@@ -453,18 +458,20 @@ class Source(Base):
             return
 
         func_match = re.search(self.R_FUNC, ctx['typed'])
-        func = func_match.group(1) if func_match else ''
-
+        func = func_match.group('fnc') if func_match else ''
+        pkg = func_match.group('pkg') if func_match else ''
         pipe = self.get_pipe(ctx['lnum'], ctx['col'])
-        LOGGER.info('word: "%s", func: "%s", pipe: %s', word, func, pipe)
+
+        LOGGER.info('word: "%s", func: "%s", pkg: %s, pipe: %s',
+                    word, func, pkg, pipe)
 
         if func:
             matches = self.get_func_matches(func, word, pipe)
         else:
-            if not word:
+            if not word and not pkg:
                 return
 
-            matches = self.get_matches(word)
+            matches = self.get_matches(word, pkg=pkg)
 
         LOGGER.debug("matches: %s", matches)
         self.complete(info, ctx, ctx['startcol'], matches)
