@@ -14,7 +14,8 @@ Features:
         with `package::`
     + **packages** inside `library()` and `require()`
     + **arguments** inside functions
-    + **variables inside data transformation pipelines** (`%>%`)
+    + **variables inside data transformation pipelines** (`%>%`) **and building
+        ggplots** (`+`)
 + **expand syntax snippets** when pressing Tab (if [UltiSnips](https://github.com/sirver/UltiSnips)
     is installed):
     + `dataframe` -> `dataframe %>% `

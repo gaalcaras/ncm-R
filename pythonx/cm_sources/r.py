@@ -437,7 +437,7 @@ class Source(Base):
 
             has_pipe = re.search(self.R_PIPE, line)
 
-            if '%>%' in line:
+            if re.search(r'(%>%|\)\s?\+)', line):
                 if has_pipe:
                     return has_pipe.group(1)
             else:
