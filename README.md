@@ -13,6 +13,7 @@ Features:
     + **functions** from all currently loaded packages or from precise package
         with `package::`
     + **packages** inside `library()` and `require()`
+    + **datasets** inside `data()`
     + **arguments** inside functions
     + **variables inside data transformation pipelines** (`%>%`) **and building
         ggplots** (`+`)

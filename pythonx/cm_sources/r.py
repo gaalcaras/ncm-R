@@ -47,8 +47,8 @@ def create_match(word='', struct='', pkg='', info=''):
 
         if info:
             args = get_func_args(info)
-            pkg_name = '{' + pkg + '}'
-            menu = '{:10}'.format(pkg_name[0:10])
+            pkg_name = '{' + pkg[0:8] + '}'
+            menu = '{:10}'.format(pkg_name)
             menu += ' ' + match['word'] + '('
             menu += ', '.join(args) + ')'
 
@@ -69,6 +69,9 @@ def create_match(word='', struct='', pkg='', info=''):
 
     if struct in ('data.frame', 'tbl_df'):
         match['snippet'] = word + ' %>% $1'
+        pkg_name = '{' + pkg[0:8] + '}'
+        match['menu'] = '{:10}'.format(pkg)
+        match['menu'] += ' ' + struct
 
     if struct == 'package':
         match['snippet'] = word + '::$1'
@@ -344,6 +347,14 @@ class Source(Base):
 
             self._pkg_matches.extend(to_matches(comps))
 
+    def get_data_matches(self):
+        """Return list of matches with datasets from R packages"""
+
+        data = filter_matches_pkgs(self._pkg_matches, self._pkg_loaded)
+        data = filter_matches_struct(data, 'data.frame')
+
+        return data
+
     def update_func_matches(self):
         """Update function matches if necessary"""
 
@@ -402,6 +413,9 @@ class Source(Base):
 
         if func in ('library', 'require'):
             return self._pkg_installed
+
+        if func in 'data':
+            return self.get_data_matches()
 
         args = list()
         for source in [self._fnc_matches, self._obj_matches]:
