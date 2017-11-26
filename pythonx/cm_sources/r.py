@@ -454,12 +454,14 @@ class Source(Base):
         word = word_match[0] if word_match else ''
 
         isinquot = re.search('["\']' + word + '$', ctx['typed'])
-        if isinquot:
-            return
 
         func_match = re.search(self.R_FUNC, ctx['typed'])
         func = func_match.group('fnc') if func_match else ''
         pkg = func_match.group('pkg') if func_match else ''
+
+        if isinquot and func and not re.search('(library|require|data)', func):
+            return
+
         pipe = self.get_pipe(ctx['lnum'], ctx['col'])
 
         LOGGER.info('word: "%s", func: "%s", pkg: %s, pipe: %s',
