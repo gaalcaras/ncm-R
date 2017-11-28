@@ -24,6 +24,45 @@ register_source(name='R',
                                      r'::'])
 
 
+def get_open_bracket_col(typed=''):
+    """Find the column of the last unclosed bracket
+
+    :typed: typed content
+    :returns: position of last unclosed bracket
+    """
+    if not typed:
+        return -1
+
+    open_brackets = []
+    inside_quotes = False
+    quotes = ''
+
+    for col, char in enumerate(typed):
+        if char in ('"', "'") and typed[col-1] != "\"":
+            if not inside_quotes:
+                quotes = char
+                inside_quotes = True
+            else:
+                inside_quotes = False if char == quotes else True
+            continue
+
+        if char == '(':
+            open_brackets.append(col)
+
+        if char == ')':
+            try:
+                open_brackets.pop()
+            except IndexError:
+                return -1
+
+    try:
+        result = open_brackets.pop()
+    except IndexError:
+        result = -1
+
+    return result
+
+
 def create_match(word='', struct='', pkg='', info=''):
     """Create ncm match dictionnary
 
@@ -469,7 +508,14 @@ class Source(Base):
 
         isinquot = re.search('["\']' + word + '$', ctx['typed'])
 
-        func_match = re.search(self.R_FUNC, ctx['typed'])
+        open_bracket = get_open_bracket_col(ctx['typed'])
+
+        if open_bracket > 0:
+            func_typed = ctx['typed'][0:open_bracket+1]
+        else:
+            func_typed = ctx['typed']
+
+        func_match = re.search(self.R_FUNC, func_typed)
         func = func_match.group('fnc') if func_match else ''
         pkg = func_match.group('pkg') if func_match else ''
 
