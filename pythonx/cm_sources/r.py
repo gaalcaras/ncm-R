@@ -251,10 +251,13 @@ def filter_matches_pkgs(ncm_matches, pkg=None):
     if not pkg:
         return ncm_matches
 
+    res_matches = []
     pkg = [pkg] if isinstance(pkg, str) else pkg
-    ncm_matches = [d for d in ncm_matches if any(p in d['pkg'] for p in pkg)]
+    for p in pkg:
+        pkg_matches = [d for d in ncm_matches if d['pkg'] == p]
+        res_matches.extend(pkg_matches)
 
-    return ncm_matches
+    return res_matches
 
 
 def filter_matches(ncm_matches, typed="", hide="", rm_typed=False):
