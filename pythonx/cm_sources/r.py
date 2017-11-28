@@ -20,8 +20,8 @@ register_source(name='R',
                 scoping=True,
                 scopes=['r'],
                 early_cache=1,
-                cm_refresh_patterns=[r'\$', r'\(', r'"', r"'", r',\s',
-                                     r'::'])
+                cm_refresh_patterns=[r'\$', r'\(([\w_\.]{3})?', r'"', r"'",
+                                     r',\s([\w_\.]{3})?', r'::'])
 
 
 def get_open_bracket_col(typed=''):
