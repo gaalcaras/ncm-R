@@ -153,7 +153,7 @@ def make_func_snippet(func='', args=None):
 
         snippet += '${' + str(numarg+1) + ':' + arg + '}, '
 
-    if len(args) > 1:
+    if len(mand_args) >= 1:
         snippet = snippet[:-2]
     else:
         snippet += '$1'
