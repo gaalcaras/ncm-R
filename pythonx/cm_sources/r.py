@@ -40,7 +40,7 @@ def get_pipe(buff, numline, numcol):
     """
 
     r_pipe = re.compile(r'([\w_\.\$]+)\s?%>%')
-    r_block = re.compile(r'[^\(]+\s?(<-|=)\s?')
+    r_block = re.compile(r'<-')
 
     no_pipe = 0
     for numl in range(numline-1, -1, -1):
