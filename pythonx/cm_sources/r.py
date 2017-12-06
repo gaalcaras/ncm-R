@@ -46,7 +46,7 @@ def get_pipe(buff, numline, numcol):
             line = line[0:numcol]
             r_pipeline = re.compile(r'(%>%|\)\s?\+)')
         else:
-            r_pipeline = re.compile(r'(%>%|\)\s?\+)$')
+            r_pipeline = re.compile(r'(%>%|\)\s?\+)\s*$')
 
         if r_pipeline.search(line):
             # If line clearly continues data pipeline
@@ -104,6 +104,49 @@ def get_open_bracket_col(typed=''):
 
     return result
 
+
+def get_function(buff, numline, numcol):
+    """Return function and package name of current line
+
+    :buff: vim buffer
+    :numline: line number
+    :numcol: column number
+    :returns: [package_name, function_name]
+    """
+
+    r_func = re.compile(r'((?P<pkg>[\w\._]+)::)?((?P<fnc>[\w\._]+)\()?[^\(]*$')
+    r_param = re.compile(r',\s*$')
+    r_block = re.compile(r'[^\(]+\s?(<-|=)\s?')
+
+    no_func = 0
+    for numl in range(numline-1, -1, -1):
+        line = buff[numl]
+
+        line = line[0:numcol-1] if numl == numline-1 else line
+
+        open_bracket = get_open_bracket_col(line)
+
+        if open_bracket == -1:
+            if r_param.search(line):
+                continue
+
+            no_func += 1
+            begin_block = r_block.match(line)
+
+            # The line could be the last line of a list of arguments,
+            # go to next iteration to check previous line...
+            if begin_block or no_func == 2:
+                # Unless the line clearly begins a block or the line below this
+                # one does not match an argument either
+                return ['', '']
+        else:
+            line = line[0:open_bracket+1]
+
+            func_match = re.search(r_func, line)
+            func = func_match.group('fnc') if func_match else ''
+            pkg = func_match.group('pkg') if func_match else ''
+
+            return [pkg, func]
 
 def create_match(word='', struct='', pkg='', info=''):
     """Create ncm match dictionnary
@@ -331,7 +374,6 @@ class Source(Base):
     """Completion Manager Source for R language"""
 
     R_WORD = re.compile(r'[\w\$_\.]+$')
-    R_FUNC = re.compile(r'((?P<pkg>[\w\._]+)::)?((?P<fnc>[\w\._]+)\()?[^\(]*$')
 
     def __init__(self, nvim):
         super(Source, self).__init__(nvim)
@@ -520,26 +562,23 @@ class Source(Base):
     def cm_refresh(self, info, ctx,):
         """Refresh NCM list of matches"""
 
+        cur_buffer = self.nvim.current.buffer
+        lnum = ctx['lnum']
+        col = ctx['col']
+
         word_match = re.search(self.R_WORD, ctx['typed'])
         word = word_match[0] if word_match else ''
 
         isinquot = re.search('["\']' + word + '$', ctx['typed'])
 
-        open_bracket = get_open_bracket_col(ctx['typed'])
-
-        if open_bracket > 0:
-            func_typed = ctx['typed'][0:open_bracket+1]
-        else:
-            func_typed = ctx['typed']
-
-        func_match = re.search(self.R_FUNC, func_typed)
-        func = func_match.group('fnc') if func_match else ''
-        pkg = func_match.group('pkg') if func_match else ''
+        function = get_function(cur_buffer, lnum, col)
+        pkg = function[0]
+        func = function[1]
 
         if isinquot and func and not re.search('(library|require|data)', func):
             return
 
-        pipe = get_pipe(self.nvim.current.buffer, ctx['lnum'], ctx['col'])
+        pipe = get_pipe(cur_buffer, lnum, col)
 
         LOGGER.info('word: "%s", func: "%s", pkg: %s, pipe: %s',
                     word, func, pkg, pipe)
