@@ -24,6 +24,48 @@ register_source(name='R',
                                      r',\s([\w_\.]{3})?', r'::'])
 
 
+def get_pipe(buff, numline, numcol):
+    """Check if completion happens inside a pipe, if so, return the piped
+    data
+
+    :buff: vim buffer
+    :numline: line number
+    :numcol: column number
+    :returns: piped data
+    """
+
+    r_pipe = re.compile(r'([\w_\.\$]+)\s?%>%')
+    r_block = re.compile(r'[^\(]+\s?(<-|=)\s?')
+
+    no_pipe = 0
+    for numl in range(numline-1, -1, -1):
+        line = buff[numl]
+
+        if numl == numline-1:
+            # If line is where the cursor is currently at
+            line = line[0:numcol]
+            r_pipeline = re.compile(r'(%>%|\)\s?\+)')
+        else:
+            r_pipeline = re.compile(r'(%>%|\)\s?\+)$')
+
+        if r_pipeline.search(line):
+            # If line clearly continues data pipeline
+            has_pipe = r_pipe.search(line)
+
+            if has_pipe:
+                return has_pipe.group(1)
+        else:
+            no_pipe += 1
+            begin_block = r_block.match(line)
+
+            # The line could be the last line of a pipeline,
+            # go to next iteration to check previous line...
+            if begin_block or no_pipe == 2:
+                # Unless the line clearly begins a block or the line below this
+                # one does not match a pipeline either
+                return None
+
+
 def get_open_bracket_col(typed=''):
     """Find the column of the last unclosed bracket
 
@@ -290,8 +332,6 @@ class Source(Base):
 
     R_WORD = re.compile(r'[\w\$_\.]+$')
     R_FUNC = re.compile(r'((?P<pkg>[\w\._]+)::)?((?P<fnc>[\w\._]+)\()?[^\(]*$')
-    R_LINE = re.compile(r'[^\(]+\s?(<-|=)\s?')
-    R_PIPE = re.compile(r'([\w_\.\$]+)\s?%>%')
 
     def __init__(self, nvim):
         super(Source, self).__init__(nvim)
@@ -477,32 +517,6 @@ class Source(Base):
 
         return matches
 
-    def get_pipe(self, numline, numcol):
-        """Check if completion happens inside a pipe, if so, return the piped
-        data
-
-        :numline: line number
-        :numcol: column number
-        :returns: piped data
-        """
-
-        no_pipe = 0
-        for numl in range(numline-1, -1, -1):
-            line = self.nvim.current.buffer[numl]
-            line = line[0:numcol] if numl == numline else line
-
-            has_pipe = re.search(self.R_PIPE, line)
-
-            if re.search(r'(%>%|\)\s?\+)', line):
-                if has_pipe:
-                    return has_pipe.group(1)
-            else:
-                no_pipe += 1
-                new_line = re.match(self.R_LINE, line)
-
-                if new_line or no_pipe == 2:
-                    return None
-
     def cm_refresh(self, info, ctx,):
         """Refresh NCM list of matches"""
 
@@ -525,7 +539,7 @@ class Source(Base):
         if isinquot and func and not re.search('(library|require|data)', func):
             return
 
-        pipe = self.get_pipe(ctx['lnum'], ctx['col'])
+        pipe = get_pipe(self.nvim.current.buffer, ctx['lnum'], ctx['col'])
 
         LOGGER.info('word: "%s", func: "%s", pkg: %s, pipe: %s',
                     word, func, pkg, pipe)
