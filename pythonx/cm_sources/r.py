@@ -20,8 +20,13 @@ register_source(name='R',
                 scoping=True,
                 scopes=['r'],
                 early_cache=1,
-                cm_refresh_patterns=[r'\$', r'\(([\w_\.]{3})?', r'"', r"'",
-                                     r',\s([\w_\.]{3})?', r'::'])
+                cm_refresh_patterns=[
+                    r'\$', r'::', r'"', r"'",
+                    # Refresh immediately after symbol and after typing 3 chars
+                    r',\s([\w_\.]{3})?',  # New argument
+                    r'^\s{2,}([\w_\.]{3})?$',  # New argument on a new line
+                    r'\(([\w_\.]{3})?',  # After a parenthesis
+                ])
 
 
 def get_pipe(buff, numline, numcol):
