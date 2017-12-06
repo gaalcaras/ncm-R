@@ -49,9 +49,9 @@ def get_pipe(buff, numline, numcol):
         if numl == numline-1:
             # If line is where the cursor is currently at
             line = line[0:numcol]
-            r_pipeline = re.compile(r'(%>%|\)\s?\+)')
+            r_pipeline = re.compile(r'%>%')
         else:
-            r_pipeline = re.compile(r'(%>%|\)\s?\+)\s*$')
+            r_pipeline = re.compile(r'(%>%|\)\s?\+|,)\s*$')
 
         if r_pipeline.search(line):
             # If line clearly continues data pipeline
