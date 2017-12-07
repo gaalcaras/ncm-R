@@ -9,6 +9,9 @@ from os import listdir
 import re
 
 from cm import register_source, getLogger, Base  # pylint: disable=E0401
+import omnils  # pylint: disable=E0401
+import filtr  # pylint: disable=E0401
+import rlang  # pylint: disable=E0401
 
 LOGGER = getLogger(__name__)
 
@@ -26,358 +29,6 @@ register_source(name='R',
                     r'^\s{2,}([\w_\.]{3})?$',  # New argument on a new line
                     r'\(([\w_\.]{3})?',  # After a parenthesis
                 ])
-
-
-def get_pipe(buff, numline, numcol):
-    """Check if completion happens inside a pipe, if so, return the piped
-    data
-
-    :buff: vim buffer
-    :numline: line number
-    :numcol: column number
-    :returns: piped data
-    """
-
-    r_pipe = re.compile(r'([\w_\.\$]+)\s?%>%')
-    r_block = re.compile(r'<-')
-
-    no_pipe = 0
-    for numl in range(numline-1, -1, -1):
-        line = buff[numl]
-
-        if numl == numline-1:
-            # If line is where the cursor is currently at
-            line = line[0:numcol]
-            r_pipeline = re.compile(r'%>%')
-        else:
-            r_pipeline = re.compile(r'(%>%|\)\s?\+|,)\s*$')
-
-        if r_pipeline.search(line):
-            # If line clearly continues data pipeline
-            has_pipe = r_pipe.search(line)
-
-            if has_pipe:
-                return has_pipe.group(1)
-        else:
-            no_pipe += 1
-            begin_block = r_block.match(line)
-
-            # The line could be the last line of a pipeline,
-            # go to next iteration to check previous line...
-            if begin_block or no_pipe == 2:
-                # Unless the line clearly begins a block or the line below this
-                # one does not match a pipeline either
-                return None
-
-
-def get_open_bracket_col(typed=''):
-    """Find the column of the last unclosed bracket
-
-    :typed: typed content
-    :returns: position of last unclosed bracket
-    """
-    if not typed:
-        return -1
-
-    open_brackets = []
-    inside_quotes = False
-    quotes = ''
-
-    for col, char in enumerate(typed):
-        if char in ('"', "'") and typed[col-1] != "\"":
-            if not inside_quotes:
-                quotes = char
-                inside_quotes = True
-            else:
-                inside_quotes = False if char == quotes else True
-            continue
-
-        if char == '(':
-            open_brackets.append(col)
-
-        if char == ')':
-            try:
-                open_brackets.pop()
-            except IndexError:
-                return -1
-
-    try:
-        result = open_brackets.pop()
-    except IndexError:
-        result = -1
-
-    return result
-
-
-def get_function(buff, numline, numcol):
-    """Return function and package name of current line
-
-    :buff: vim buffer
-    :numline: line number
-    :numcol: column number
-    :returns: [package_name, function_name]
-    """
-
-    r_func = re.compile((r'((?P<pkg>[\w\._]+)::)?' +
-                         r'((?P<fnc>[\w\._]+)\()?[^\(^:]*$'))
-    r_param = re.compile(r',\s*$')
-    r_block = re.compile(r'<-')
-
-    no_func = 0
-    for numl in range(numline-1, -1, -1):
-        line = buff[numl]
-
-        line = line[0:numcol-1] if numl == numline-1 else line
-
-        open_bracket = get_open_bracket_col(line)
-
-        if open_bracket == -1:
-            if r_param.search(line):
-                continue
-
-            no_func += 1
-            begin_block = r_block.match(line)
-
-            # The line could be the last line of a list of arguments,
-            # go to next iteration to check previous line...
-            if begin_block or no_func == 2:
-                # Unless the line clearly begins a block or the line below this
-                # one does not match an argument either
-                return ['', '']
-        else:
-            line = line[0:open_bracket+1]
-
-        func_match = re.search(r_func, line)
-        func = func_match.group('fnc') if func_match else ''
-        pkg = func_match.group('pkg') if func_match else ''
-
-        if (pkg and numl == numline-1) or func:
-            return [pkg, func]
-
-        if numl == 0 and not pkg and not func:
-            return ['', '']
-
-
-def create_match(word='', struct='', pkg='', info=''):
-    """Create ncm match dictionnary
-
-    :word: word (appears in menu)
-    :struct: type (str() in R)
-    :pkg: pkg
-    :info: additional information about the object (args, doc, etc.)
-    :returns: ncm match
-    """
-
-    if not word and not struct:
-        return None
-
-    match = dict(word=word,
-                 menu='{:10}'.format(struct[0:10]),
-                 struct=struct)
-
-    match['pkg'] = pkg if pkg else ''
-
-    if struct == 'function':
-
-        if info:
-            args = get_func_args(info)
-            pkg_name = '{' + pkg[0:8] + '}'
-            menu = '{:10}'.format(pkg_name)
-            menu += ' ' + match['word'] + '('
-            menu += ', '.join(args) + ')'
-
-            match['menu'] = menu
-            match['snippet'] = make_func_snippet(word, args)
-
-            margs = list()
-            for arg in args:
-                if arg in ('NO_ARGS', '...'):
-                    continue
-
-                margs.append(create_match(word=arg, struct='argument'))
-
-            match['args'] = margs
-
-        else:
-            match['snippet'] = word + '($1)'
-
-    if struct in ('data.frame', 'tbl_df'):
-        match['snippet'] = word + ' %>%$1'
-        pkg_name = '{' + pkg[0:8] + '}'
-        match['menu'] = '{:10}'.format(pkg_name)
-        match['menu'] += ' ' + struct
-
-    if struct == 'package':
-        match['snippet'] = word + '::$1'
-
-    if struct == 'argument':
-        word_parts = [w.strip() for w in word.split('=')]
-        lhs = word_parts[0]
-        rhs = word_parts[1] if len(word_parts) == 2 else ''
-
-        match['word'] = lhs
-        match['menu'] = '{:10}'.format('param')
-        match['menu'] += ' = ' + rhs if rhs else ''
-
-        if rhs:
-            match['snippet'] = lhs + ' = ${1:' + rhs + '}'
-        else:
-            match['snippet'] = lhs + ' = $1'
-
-    return match
-
-
-def make_func_snippet(func='', args=None):
-    """Create function snippet with its arguments
-
-    :func: the function name
-    :args: function arguments
-    :returns: snippet
-    """
-    snippet = func + '('
-
-    if args[0] == 'NO_ARGS':
-        return snippet + ')'
-
-    # Fill snippet with mandatory arguments
-    mand_args = [a for a in args if '=' not in a]
-
-    for numarg, arg in enumerate(mand_args):
-        if arg in ('...') and numarg > 0:
-            continue
-
-        snippet += '${' + str(numarg+1) + ':' + arg + '}, '
-
-    if len(mand_args) >= 1:
-        snippet = snippet[:-2]
-    else:
-        snippet += '$1'
-
-    snippet = snippet + ')'
-
-    return snippet
-
-
-def get_func_args(info=''):
-    """Return function arguments based on omniline info
-
-    :info: information from omni files
-    :returns: ncm match with info entry
-    """
-    if not info:
-        return list()
-
-    splits = re.split('\x08', info)
-    args = splits[0]
-    args = re.split('\t', args)
-    args = [arg.replace('\x07', ' = ') for arg in args]
-
-    return args
-
-
-def to_matches(lines):
-    """Transform omni lists from Nvim-R into list of NCM matches
-
-    :lines: list of lines from an omni list
-    :returns: list of ncm matches
-    """
-
-    cm_list = list()
-
-    for line in lines:
-        parts = re.split('\x06', line)
-        match = create_match(word=parts[0], struct=parts[1], pkg=parts[3],
-                             info=parts[4])
-
-        if match:
-            cm_list.append(match)
-
-    return cm_list
-
-
-def filter_matches_arg(ncm_matches, func="", pipe=None):
-    """Filter list of ncm matches of arguments for func
-
-    :ncm_matches: list of matches
-    :func: function name
-    :pipe: piped data
-    :returns: filtered list of ncm matches
-    """
-
-    if not func:
-        return ncm_matches
-
-    args = [m['args'] for m in ncm_matches if m['word'] == func]
-
-    if args:
-        if pipe:
-            # In data pipelines, hide arguments like ".data = "
-            return [a for a in args[0] if '.data' not in a['word']]
-
-        return args[0]
-
-    return ['']
-
-
-def filter_matches_struct(ncm_matches, struct=""):
-    """Filter list of ncm matches based on their types (str() in R)
-
-    :ncm_matches: list of matches (dictionaries)
-    :struct: only show matches of given type
-    :returns: filtered list of ncm matches
-    """
-
-    if not struct:
-        return ncm_matches
-
-    ncm_matches = [d for d in ncm_matches if d['struct'] == struct]
-
-    return ncm_matches
-
-
-def filter_matches_pkgs(ncm_matches, pkgs=None):
-    """Filter list of ncm matches with R packages
-
-    :ncm_matches: list of matches
-    :pkgs: only show matches from given R packages
-    :returns: filtered list of ncm matches
-    """
-
-    if not pkgs:
-        return ncm_matches
-
-    res_matches = []
-    packages = [pkgs] if isinstance(pkgs, str) else pkgs
-    for pkg in packages:
-        pkg_matches = [d for d in ncm_matches if d['pkg'] == pkg]
-        res_matches.extend(pkg_matches)
-
-    return res_matches
-
-
-def filter_matches(ncm_matches, typed="", hide="", rm_typed=False):
-    """Filter list of ncm matches
-
-    :ncm_matches: list of matches (dictionaries)
-    :typed: filter matches with this string
-    :hide: filter out matches containing this string
-    :rm_typed: remove typed string from the filtered matches
-    :returns: filtered list of cm dictionaries
-    """
-
-    filtered_list = list()
-
-    for match in ncm_matches:
-        if typed and re.match(re.escape(typed), match['word']):
-            if hide and hide in match['word']:
-                continue
-
-            if rm_typed:
-                match['word'] = match['word'].replace(typed, '')
-
-            filtered_list.append(match)
-
-    return filtered_list
 
 
 class Source(Base):  # pylint: disable=R0902
@@ -452,7 +103,7 @@ class Source(Base):  # pylint: disable=R0902
         with open(globenv_file, 'r') as globenv:
             objs = [obj.strip() for obj in globenv.readlines()]
 
-        self._obj_matches = to_matches(objs)
+        self._obj_matches = omnils.to_matches(objs)
 
     def get_all_pkg_matches(self):
         """Populate matches list with candidates from every R package"""
@@ -466,7 +117,7 @@ class Source(Base):  # pylint: disable=R0902
             if pkg_name in self._pkg_installed:
                 continue
 
-            match = create_match(word=pkg_name, struct='package')
+            match = omnils.create_match(word=pkg_name, struct='package')
             self._pkg_installed.append(pkg_name)
             self._pkg_matches.append(match)
 
@@ -475,14 +126,14 @@ class Source(Base):  # pylint: disable=R0902
             with open(filepath, 'r') as omnil:
                 comps = [pkg.strip() for pkg in omnil.readlines()]
 
-            self._all_matches.extend(to_matches(comps))
+            self._all_matches.extend(omnils.to_matches(comps))
 
     def get_data_matches(self):
         """Return list of matches with datasets from R packages"""
 
-        pkg_matches = filter_matches_pkgs(self._all_matches, self._pkg_loaded)
-        data = filter_matches_struct(pkg_matches, 'data.frame')
-        data.extend(filter_matches_struct(pkg_matches, 'tbl_df'))
+        pkg_matches = filtr.pkg(self._all_matches, self._pkg_loaded)
+        data = filtr.struct(pkg_matches, 'data.frame')
+        data.extend(filtr.struct(pkg_matches, 'tbl_df'))
 
         return data
 
@@ -491,8 +142,8 @@ class Source(Base):  # pylint: disable=R0902
 
         if self.update_loaded_pkgs():
             LOGGER.info('Update Loaded R packages: %s', self._pkg_loaded)
-            funcs = filter_matches_pkgs(self._all_matches, self._pkg_loaded)
-            funcs = filter_matches_struct(funcs, 'function')
+            funcs = filtr.pkg(self._all_matches, self._pkg_loaded)
+            funcs = filtr.struct(funcs, 'function')
             self._fnc_matches = funcs
 
     def get_matches(self, word, pkg=None, pipe=None):
@@ -509,25 +160,25 @@ class Source(Base):  # pylint: disable=R0902
 
         if pipe:
             # Inside data pipeline, keep variables from piped data
-            obj_m = filter_matches(obj_m, pipe + '$', rm_typed=True)
+            obj_m = filtr.word(obj_m, pipe + '$', rm_typed=True)
         else:
             if '$' in word:
                 # If we're looking inside a data frame or tibble, only return
                 # its variables
-                obj_m = filter_matches(obj_m, word, rm_typed=True)
+                obj_m = filtr.word(obj_m, word, rm_typed=True)
             else:
                 # Otherwise, hide what's inside data.frames
-                obj_m = filter_matches(obj_m, word, hide='$')
+                obj_m = filtr.word(obj_m, word, hide='$')
 
         matches = obj_m
 
         # Get functions from loaded R packages
         self.update_func_matches()
-        func_m = filter_matches_pkgs(self._fnc_matches, pkg)
+        func_m = filtr.pkg(self._fnc_matches, pkg)
         func_m.extend(self._pkg_matches)
 
         if not pkg or (pkg and word):
-            func_m = filter_matches(func_m, word)
+            func_m = filtr.word(func_m, word)
 
         matches.extend(func_m)
 
@@ -550,7 +201,7 @@ class Source(Base):  # pylint: disable=R0902
 
         args = list()
         for source in [self._fnc_matches, self._obj_matches]:
-            args = filter_matches_arg(source, func, pipe)
+            args = filtr.arg(source, func, pipe)
             args.extend(args)
 
             if len(args) > 1:
@@ -581,14 +232,14 @@ class Source(Base):  # pylint: disable=R0902
 
         isinquot = re.search('["\']' + word + '$', ctx['typed'])
 
-        function = get_function(cur_buffer, lnum, col)
+        function = rlang.get_function(cur_buffer, lnum, col)
         pkg = function[0]
         func = function[1]
 
         if isinquot and func and not re.search('(library|require|data)', func):
             return
 
-        pipe = get_pipe(cur_buffer, lnum, col)
+        pipe = rlang.get_pipe(cur_buffer, lnum, col)
 
         LOGGER.info('word: "%s", func: "%s", pkg: %s, pipe: %s',
                     word, func, pkg, pipe)
