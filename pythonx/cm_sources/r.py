@@ -459,13 +459,14 @@ class Source(Base):
             match = create_match(word=re.search(r'_(\w+)_', filename)[1],
                                  struct='package')
 
-            if match:
-                self._pkg_installed.append(match)
+            if match in self._pkg_installed:
+                continue
 
-        compfiles = [compdir + '/' + comp for comp in comps]
+            self._pkg_installed.append(match)
 
-        for pkg in compfiles:
-            with open(pkg, 'r') as omnil:
+            filepath = compdir + '/' + filename
+
+            with open(filepath, 'r') as omnil:
                 comps = [pkg.strip() for pkg in omnil.readlines()]
 
             self._pkg_matches.extend(to_matches(comps))
