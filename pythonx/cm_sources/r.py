@@ -204,7 +204,7 @@ def create_match(word='', struct='', pkg='', info=''):
     if struct in ('data.frame', 'tbl_df'):
         match['snippet'] = word + ' %>%$1'
         pkg_name = '{' + pkg[0:8] + '}'
-        match['menu'] = '{:10}'.format(pkg)
+        match['menu'] = '{:10}'.format(pkg_name)
         match['menu'] += ' ' + struct
 
     if struct == 'package':
