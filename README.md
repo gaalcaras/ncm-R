@@ -2,7 +2,7 @@
 
 # Asynchronous R completion for Neovim
 
-![Gif screenshot](https://user-images.githubusercontent.com/6551953/33690893-e896c35e-dae5-11e7-973d-cc1bffed1fcf.gif)
+![fullscreen screencast](https://user-images.githubusercontent.com/6551953/33690893-e896c35e-dae5-11e7-973d-cc1bffed1fcf.gif)
 
 ncm-R extends the
 [nvim-completion-manager](https://github.com/roxma/nvim-completion-manager)
@@ -13,6 +13,8 @@ ncm-R extends the
 <!-- vim-markdown-toc GFM -->
 
 * [Features](#features)
+	* [Completion](#completion)
+	* [Snippets](#snippets)
 * [Who should use this plugin?](#who-should-use-this-plugin)
 * [Installation](#installation)
 * [How to use ncm-R](#how-to-use-ncm-r)
@@ -22,22 +24,41 @@ ncm-R extends the
 
 ## Features
 
-+ Completion support for:
-    + **objects** from the global R environment
-    + **functions** from all currently loaded packages or from precise package
-        with `package::`
-    + **packages** inside `library()` and `require()`
-    + **datasets** inside `data()`
-    + **arguments** inside functions
-    + **variables inside data transformation pipelines** (`%>%`) **and building
-        ggplots** (`+`)
-+ **expand syntax snippets** when pressing Tab (if [UltiSnips](https://github.com/sirver/UltiSnips)
-    is installed):
-    + `dataframe` -> `dataframe %>%`
-    + `function` -> `function(arg1, arg2, ...)` (expands mandatory arguments
-        only)
-    + `package` -> `package::`
-    + `argument` -> `argument = DEFAULT_VALUE`
+### Completion
+
+**Objects** from the global R environment :
+
+![variables](https://user-images.githubusercontent.com/6551953/33718172-ce45f746-db5c-11e7-878f-818f5a7059b3.gif)
+
+**Functions** from all currently loaded packages or from precise package with `package::`:
+
+![functions](https://user-images.githubusercontent.com/6551953/33718180-d4510ff4-db5c-11e7-9536-8e8b52f9630f.gif)
+
+**Packages** inside `library()` and `require()`:
+
+![library](https://user-images.githubusercontent.com/6551953/33718181-d47e22dc-db5c-11e7-9768-385b1c1558fe.gif)
+
+**Datasets** inside `data()`:
+
+![data](https://user-images.githubusercontent.com/6551953/33718183-d49b9f06-db5c-11e7-8c97-a5a1793907a3.gif)
+
+**Arguments** inside functions:
+
+![arguments](https://user-images.githubusercontent.com/6551953/33718185-d4b86816-db5c-11e7-8db8-28df7a95d456.gif)
+
+**Variables inside data transformation pipelines** (`%>%`) **and building ggplots** (`+`):
+
+![pipeline](https://user-images.githubusercontent.com/6551953/33718382-76ee990c-db5d-11e7-9a84-89e790c9e577.gif)
+
+### Snippets
+
+If [UltiSnips](https://github.com/sirver/UltiSnips) is installed, pressing Tab
+after selecting a completion suggestion will **expand syntax snippets**:
+
++ `dataframe` -> `dataframe %>%`
++ `function` -> `function(arg1, arg2, ...)` (expands mandatory arguments only)
++ `package` -> `package::`
++ `argument` -> `argument = DEFAULT_VALUE`
 
 ## Who should use this plugin?
 
@@ -52,6 +73,11 @@ It should be noted that [Nvim-R](https://github.com/jalvesaq/Nvim-R) already
 comes with OmniCompletion. It's lightweight and it works well, but you need to
 ask for completion (`<C-x><C-o>`, `<C-x><C-a>` for arguments) and it
 doesn't support pipelines.
+
+On the other hand, ncm-R offers more features, but it's not as lightweight,
+especially since R exposes so many functions to the user − which is why I find
+"suggest as you type" completion so useful in the first place. That being said,
+ncm-R has been pretty fast for me so far, even when running on a 2011 laptop.
 
 ## Installation
 
@@ -95,3 +121,7 @@ directory
 + loaded packages using a temporary `loaded_pkgs_` file, generated through
   nvimcom. If you load a package for the first time in Nvim-R, ncm-R updates
   the completion data with the new omni file in `g:rplugin_compldir`
+
+For more information, please check out [this section of Nvim-R's
+README](https://github.com/jalvesaq/Nvim-R#the-communication-between-r-and-either-vim-or-neovim)
+and `:help NCM-API` for details about NCM's API.
