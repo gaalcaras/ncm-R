@@ -8,7 +8,6 @@ by Gabriel Alcaras
 import re
 from os import listdir
 
-import neovim
 from cm import register_source, getLogger, Base  # pylint: disable=E0401
 
 LOGGER = getLogger(__name__)
@@ -152,6 +151,7 @@ def get_function(buff, numline, numcol):
             pkg = func_match.group('pkg') if func_match else ''
 
             return [pkg, func]
+
 
 def create_match(word='', struct='', pkg='', info=''):
     """Create ncm match dictionnary
@@ -330,21 +330,21 @@ def filter_matches_struct(ncm_matches, struct=""):
     return ncm_matches
 
 
-def filter_matches_pkgs(ncm_matches, pkg=None):
+def filter_matches_pkgs(ncm_matches, pkgs=None):
     """Filter list of ncm matches with R packages
 
     :ncm_matches: list of matches
-    :pkg: only show matches from given R packages
+    :pkgs: only show matches from given R packages
     :returns: filtered list of ncm matches
     """
 
-    if not pkg:
+    if not pkgs:
         return ncm_matches
 
     res_matches = []
-    pkg = [pkg] if isinstance(pkg, str) else pkg
-    for p in pkg:
-        pkg_matches = [d for d in ncm_matches if d['pkg'] == p]
+    packages = [pkgs] if isinstance(pkgs, str) else pkgs
+    for pkg in packages:
+        pkg_matches = [d for d in ncm_matches if d['pkg'] == pkg]
         res_matches.extend(pkg_matches)
 
     return res_matches
@@ -392,18 +392,7 @@ class Source(Base):
         self._fnc_matches = list()
         self._obj_matches = list()
 
-        self._start_nvimr()
         self.get_all_pkg_matches()
-
-    def _start_nvimr(self):
-        """Start nvim-R"""
-
-        try:
-            if self.nvim.eval('g:SendCmdToR') == "function('SendCmdToR_fake')":
-                self.nvim.funcs.StartR('R')
-        except neovim.api.nvim.NvimError as ex:
-            self.message('error', 'Could not start nvim-R :(')
-            LOGGER.exception(ex)
 
     def _r_output_to_file(self, rcmd='', filepath=''):
         """Write output of R command to file
