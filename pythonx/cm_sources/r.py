@@ -5,8 +5,8 @@ R Source for Neovim Completion Manager, to be used with nvim-R
 by Gabriel Alcaras
 """
 
-import re
 from os import listdir
+import re
 
 from cm import register_source, getLogger, Base  # pylint: disable=E0401
 
@@ -380,7 +380,7 @@ def filter_matches(ncm_matches, typed="", hide="", rm_typed=False):
     return filtered_list
 
 
-class Source(Base):
+class Source(Base):  # pylint: disable=R0902
     """Completion Manager Source for R language"""
 
     R_WORD = re.compile(r'[\w\$_\.]+$')
@@ -393,6 +393,8 @@ class Source(Base):
 
         self._pkg_loaded = list()
         self._pkg_installed = list()
+
+        self._all_matches = list()
         self._pkg_matches = list()
         self._fnc_matches = list()
         self._obj_matches = list()
@@ -436,6 +438,9 @@ class Source(Base):
         if set(old_pkgs) == set(self._pkg_loaded):
             return 0
 
+        if any(pkg not in self._pkg_installed for pkg in self._pkg_loaded):
+            self.get_all_pkg_matches()
+
         return 1
 
     def get_all_obj_matches(self):
@@ -456,24 +461,26 @@ class Source(Base):
         comps = [f for f in listdir(compdir) if 'omnils' in f]
 
         for filename in comps:
-            match = create_match(word=re.search(r'_(\w+)_', filename)[1],
-                                 struct='package')
+            pkg_name = re.search(r'_(\w+)_', filename)[1]
 
-            if match in self._pkg_installed:
+            if pkg_name in self._pkg_installed:
                 continue
 
-            self._pkg_installed.append(match)
+            match = create_match(word=pkg_name, struct='package')
+            self._pkg_installed.append(pkg_name)
+            self._pkg_matches.append(match)
 
             filepath = compdir + '/' + filename
 
             with open(filepath, 'r') as omnil:
                 comps = [pkg.strip() for pkg in omnil.readlines()]
 
-            self._pkg_matches.extend(to_matches(comps))
+            self._all_matches.extend(to_matches(comps))
 
     def get_data_matches(self):
         """Return list of matches with datasets from R packages"""
-        pkg_matches = filter_matches_pkgs(self._pkg_matches, self._pkg_loaded)
+
+        pkg_matches = filter_matches_pkgs(self._all_matches, self._pkg_loaded)
         data = filter_matches_struct(pkg_matches, 'data.frame')
         data.extend(filter_matches_struct(pkg_matches, 'tbl_df'))
 
@@ -484,7 +491,7 @@ class Source(Base):
 
         if self.update_loaded_pkgs():
             LOGGER.info('Update Loaded R packages: %s', self._pkg_loaded)
-            funcs = filter_matches_pkgs(self._pkg_matches, self._pkg_loaded)
+            funcs = filter_matches_pkgs(self._all_matches, self._pkg_loaded)
             funcs = filter_matches_struct(funcs, 'function')
             self._fnc_matches = funcs
 
@@ -517,7 +524,7 @@ class Source(Base):
         # Get functions from loaded R packages
         self.update_func_matches()
         func_m = filter_matches_pkgs(self._fnc_matches, pkg)
-        func_m.extend(self._pkg_installed)
+        func_m.extend(self._pkg_matches)
 
         if not pkg or (pkg and word):
             func_m = filter_matches(func_m, word)
@@ -536,7 +543,7 @@ class Source(Base):
         """
 
         if func in ('library', 'require'):
-            return self._pkg_installed
+            return self._pkg_matches
 
         if func in 'data':
             return self.get_data_matches()
