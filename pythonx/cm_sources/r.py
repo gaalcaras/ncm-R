@@ -472,9 +472,9 @@ class Source(Base):
 
     def get_data_matches(self):
         """Return list of matches with datasets from R packages"""
-
-        data = filter_matches_pkgs(self._pkg_matches, self._pkg_loaded)
-        data = filter_matches_struct(data, 'data.frame')
+        pkg_matches = filter_matches_pkgs(self._pkg_matches, self._pkg_loaded)
+        data = filter_matches_struct(pkg_matches, 'data.frame')
+        data.extend(filter_matches_struct(pkg_matches, 'tbl_df'))
 
         return data
 
