@@ -561,6 +561,9 @@ class Source(Base):
     def cm_refresh(self, info, ctx,):
         """Refresh NCM list of matches"""
 
+        if not self._pkg_loaded:
+            self.update_loaded_pkgs()
+
         cur_buffer = self.nvim.current.buffer
         lnum = ctx['lnum']
         col = ctx['col']
