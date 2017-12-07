@@ -118,9 +118,10 @@ def get_function(buff, numline, numcol):
     :returns: [package_name, function_name]
     """
 
-    r_func = re.compile(r'((?P<pkg>[\w\._]+)::)?((?P<fnc>[\w\._]+)\()?[^\(]*$')
+    r_func = re.compile((r'((?P<pkg>[\w\._]+)::)?' +
+                         r'((?P<fnc>[\w\._]+)\()?[^\(^:]*$'))
     r_param = re.compile(r',\s*$')
-    r_block = re.compile(r'[^\(]+\s?(<-|=)\s?')
+    r_block = re.compile(r'<-')
 
     no_func = 0
     for numl in range(numline-1, -1, -1):
@@ -146,11 +147,15 @@ def get_function(buff, numline, numcol):
         else:
             line = line[0:open_bracket+1]
 
-            func_match = re.search(r_func, line)
-            func = func_match.group('fnc') if func_match else ''
-            pkg = func_match.group('pkg') if func_match else ''
+        func_match = re.search(r_func, line)
+        func = func_match.group('fnc') if func_match else ''
+        pkg = func_match.group('pkg') if func_match else ''
 
+        if (pkg and numl == numline-1) or func:
             return [pkg, func]
+
+        if numl == 0 and not pkg and not func:
+            return ['', '']
 
 
 def create_match(word='', struct='', pkg='', info=''):
