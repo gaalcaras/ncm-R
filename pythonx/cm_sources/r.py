@@ -312,7 +312,7 @@ def filter_matches_arg(ncm_matches, func="", pipe=None):
     if args:
         if pipe:
             # In data pipelines, hide arguments like ".data = "
-            return [a for a in args[0] if '.' not in a['word']]
+            return [a for a in args[0] if '.data' not in a['word']]
 
         return args[0]
 
