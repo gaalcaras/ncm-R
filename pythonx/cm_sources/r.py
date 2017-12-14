@@ -125,6 +125,13 @@ class Source(Base):  # pylint: disable=R0902
         compdir = self.nvim.eval('g:rplugin_compldir')
         comps = [f for f in listdir(compdir) if 'omnils' in f]
 
+        if not comps:
+            LOGGER.warn('No omnils_* files in %s', compdir)
+            self.message('INFO',
+                         'ncm-R can\'t find the completion data. '
+                         'Please load the R packages you need, '
+                         'like the "base" package.')
+
         for filename in comps:
             pkg_name = re.search(r'_(\w+)_', filename).group(1)
 
@@ -236,6 +243,7 @@ class Source(Base):  # pylint: disable=R0902
 
         if not self._pkg_loaded:
             self.update_loaded_pkgs()
+            return
 
         cur_buffer = self.nvim.current.buffer
         lnum = ctx['lnum']
