@@ -8,7 +8,9 @@ by Gabriel Alcaras
 from os import listdir
 import re
 
+import neovim
 from cm import register_source, getLogger, Base  # pylint: disable=E0401
+
 import omnils  # pylint: disable=E0401
 import filtr  # pylint: disable=E0401
 import rlang  # pylint: disable=E0401
@@ -63,7 +65,14 @@ class Source(Base):  # pylint: disable=R0902
 
         rcmd = 'writeLines(text = paste(' + rcmd + ', collapse="\\n"), '
         rcmd += 'con = "' + filepath + '")'
-        self.nvim.funcs.SendToNvimcom('\x08' + self._nvimr + rcmd)
+
+        try:
+            self.nvim.funcs.SendToNvimcom('\x08' + self._nvimr + rcmd)
+        except neovim.api.nvim.NvimError as error:
+            self.message('ERROR',
+                         'ncm-R can\'t connect to nvimcom. '
+                         'Please start R using Nvim-R '
+                         '(default mapping: <localleader>rf).')
 
     def update_loaded_pkgs(self):
         """Update list of loaded R packages
