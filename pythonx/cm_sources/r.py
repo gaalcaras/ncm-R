@@ -241,13 +241,16 @@ class Source(Base):  # pylint: disable=R0902
     def cm_refresh(self, info, ctx,):
         """Refresh NCM list of matches"""
 
-        if not self._pkg_loaded:
-            self.update_loaded_pkgs()
-            return
-
         cur_buffer = self.nvim.current.buffer
         lnum = ctx['lnum']
         col = ctx['col']
+
+        if re.match('^#', cur_buffer[lnum-1]):
+            return
+
+        if not self._pkg_loaded:
+            self.update_loaded_pkgs()
+            return
 
         word_match = re.search(self.R_WORD, ctx['typed'])
         word = word_match.group(0) if word_match else ''
