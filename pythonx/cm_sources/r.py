@@ -112,7 +112,7 @@ class Source(Base):  # pylint: disable=R0902
         comps = [f for f in listdir(compdir) if 'omnils' in f]
 
         for filename in comps:
-            pkg_name = re.search(r'_(\w+)_', filename)[1]
+            pkg_name = re.search(r'_(\w+)_', filename).group(1)
 
             if pkg_name in self._pkg_installed:
                 continue
@@ -228,7 +228,7 @@ class Source(Base):  # pylint: disable=R0902
         col = ctx['col']
 
         word_match = re.search(self.R_WORD, ctx['typed'])
-        word = word_match[0] if word_match else ''
+        word = word_match.group(0) if word_match else ''
 
         isinquot = re.search('["\']' + word + '$', ctx['typed'])
 
