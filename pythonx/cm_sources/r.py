@@ -95,10 +95,15 @@ class Source(Base):  # pylint: disable=R0902
         except FileNotFoundError:
             LOGGER.warn('Cannot find loaded R packages. Please start nvim-R')
 
-        if set(old_pkgs) == set(self._pkg_loaded):
+        new_loaded_pkgs = (set(old_pkgs) == set(self._pkg_loaded))
+        new_pkgs = any(p not in self._pkg_installed for p in self._pkg_loaded)
+
+        if not new_loaded_pkgs and not new_pkgs:
             return 0
 
-        if any(pkg not in self._pkg_installed for pkg in self._pkg_loaded):
+        if new_pkgs:
+            LOGGER.info('Some loaded packages miss an omni file. '
+                        'Refreshing matches...')
             self.get_all_pkg_matches()
 
         return 1
