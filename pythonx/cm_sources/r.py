@@ -265,6 +265,9 @@ class Source(Base):  # pylint: disable=R0902
         lnum = ctx['lnum']
         col = ctx['col']
 
+        if ctx['filetype'] == 'rmd':
+            cur_buffer = cur_buffer[ctx['scope_lnum']-1:]
+
         if re.match('^#', cur_buffer[lnum-1]):
             return
 
