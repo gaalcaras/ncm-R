@@ -68,7 +68,7 @@ class Source(Base):  # pylint: disable=R0902
 
         try:
             self.nvim.funcs.SendToNvimcom('\x08' + self._nvimr + rcmd)
-        except neovim.api.nvim.NvimError as error:
+        except neovim.api.nvim.NvimError:
             self.message('ERROR',
                          'ncm-R can\'t connect to nvimcom. '
                          'Please start R using Nvim-R '

@@ -31,10 +31,10 @@ def create_match(word='', struct='', pkg='', info=''):
 
         if info:
             args = get_func_args(info)
+            title = get_obj_title(info)
             pkg_name = '{' + pkg[0:8] + '}'
             menu = '{:10}'.format(pkg_name)
-            menu += ' ' + match['word'] + '('
-            menu += ', '.join(args) + ')'
+            menu += ' ' + title
 
             match['menu'] = menu
             match['snippet'] = make_func_snippet(word, args)
@@ -54,8 +54,10 @@ def create_match(word='', struct='', pkg='', info=''):
     if struct in ('data.frame', 'tbl_df'):
         match['snippet'] = word + ' %>%$1'
         pkg_name = '{' + pkg[0:8] + '}'
+        title = get_obj_title(info)
         match['menu'] = '{:10}'.format(pkg_name)
-        match['menu'] += ' ' + struct
+        match['menu'] += ' {:10}'.format(struct[0:10])
+        match['menu'] += ' ' + title
 
     if struct == 'package':
         match['snippet'] = word + '::$1'
@@ -112,7 +114,7 @@ def get_func_args(info=''):
     """Return function arguments based on omniline info
 
     :info: information from omni files
-    :returns: ncm match with info entry
+    :returns: list of arguments
     """
     if not info:
         return list()
@@ -123,6 +125,23 @@ def get_func_args(info=''):
     args = [arg.replace('\x07', ' = ') for arg in args]
 
     return args
+
+
+def get_obj_title(info=''):
+    """Return object title based on omniline info
+
+    :info: information from omni files
+    :returns: function title
+    """
+    if not info:
+        return list()
+
+    obj_title = re.search(r'\x08(.*)\x05', info)
+
+    if obj_title:
+        return obj_title.group(1).strip()
+
+    return ''
 
 
 def to_matches(lines):
@@ -136,10 +155,12 @@ def to_matches(lines):
 
     for line in lines:
         parts = re.split('\x06', line)
-        match = create_match(word=parts[0], struct=parts[1], pkg=parts[3],
-                             info=parts[4])
 
-        if match:
-            cm_list.append(match)
+        if len(parts) >= 5:
+            match = create_match(word=parts[0], struct=parts[1], pkg=parts[3],
+                                 info=parts[4])
+
+            if match:
+                cm_list.append(match)
 
     return cm_list
