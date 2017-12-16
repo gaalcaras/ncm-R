@@ -69,6 +69,7 @@ class Source(Base):  # pylint: disable=R0902
         try:
             self.nvim.funcs.SendToNvimcom('\x08' + self._nvimr + rcmd)
         except neovim.api.nvim.NvimError:
+            LOGGER.warn('ncm-R can\'t connect to nvimcom.')
             self.message('ERROR',
                          'ncm-R can\'t connect to nvimcom. '
                          'Please start R using Nvim-R '
@@ -94,6 +95,10 @@ class Source(Base):  # pylint: disable=R0902
             loaded_pkgs.close()
         except FileNotFoundError:
             LOGGER.warn('Cannot find loaded R packages. Please start nvim-R')
+            self.message('ERROR',
+                         'ncm-R can\'t find loaded R packages. '
+                         'Please start R using Nvim-R '
+                         '(default mapping: <localleader>rf).')
 
         new_loaded_pkgs = (set(old_pkgs) == set(self._pkg_loaded))
         new_pkgs = any(p not in self._pkg_installed for p in self._pkg_loaded)
