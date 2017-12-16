@@ -5,7 +5,7 @@ R Source for Neovim Completion Manager, to be used with nvim-R
 by Gabriel Alcaras
 """
 
-from os import listdir
+from os import listdir, path
 import re
 
 import neovim
@@ -81,7 +81,7 @@ class Source(Base):  # pylint: disable=R0902
         :returns: 1 if loaded packages have changed, 0 otherwise
         """
 
-        loadpkg = self._tmpdir + '/loaded_pkgs_' + self._nvimr
+        loadpkg = path.join(self._tmpdir, 'loaded_pkgs_' + self._nvimr)
         self.nvim.funcs.AddForDeletion(loadpkg)
 
         self._r_output_to_file('.packages()', loadpkg)
@@ -117,7 +117,7 @@ class Source(Base):  # pylint: disable=R0902
         """Populate candidates with all R objects in the environment"""
 
         self.nvim.funcs.BuildROmniList("")
-        globenv_file = self._tmpdir + '/GlobalEnvList_' + self._nvimr
+        globenv_file = path.join(self._tmpdir, 'GlobalEnvList_' + self._nvimr)
 
         with open(globenv_file, 'r') as globenv:
             objs = [obj.strip() for obj in globenv.readlines()]
@@ -147,7 +147,7 @@ class Source(Base):  # pylint: disable=R0902
             self._pkg_installed.append(pkg_name)
             self._pkg_matches.append(match)
 
-            filepath = compdir + '/' + filename
+            filepath = path.join(compdir, filename)
 
             with open(filepath, 'r') as omnil:
                 comps = [pkg.strip() for pkg in omnil.readlines()]
