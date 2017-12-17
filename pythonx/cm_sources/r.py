@@ -69,7 +69,7 @@ class Source(Base):  # pylint: disable=R0902
         try:
             self.nvim.funcs.SendToNvimcom('\x08' + self._nvimr + rcmd)
         except neovim.api.nvim.NvimError:
-            LOGGER.warn('ncm-R can\'t connect to nvimcom.')
+            LOGGER.warn('[ncm-R] ncm-R can\'t connect to nvimcom.')
             self.message('ERROR',
                          'ncm-R can\'t connect to nvimcom. '
                          'Please start R using Nvim-R '
@@ -94,7 +94,8 @@ class Source(Base):  # pylint: disable=R0902
 
             loaded_pkgs.close()
         except FileNotFoundError:
-            LOGGER.warn('Cannot find loaded R packages. Please start nvim-R')
+            LOGGER.warn('[ncm-R] Cannot find loaded R packages. '
+                        'Please start nvim-R')
             self.message('ERROR',
                          'ncm-R can\'t find loaded R packages. '
                          'Please start R using Nvim-R '
@@ -107,7 +108,7 @@ class Source(Base):  # pylint: disable=R0902
             return 0
 
         if new_pkgs:
-            LOGGER.info('Some loaded packages miss an omni file. '
+            LOGGER.info('[ncm-R] Some loaded packages miss an omni file. '
                         'Refreshing matches...')
             self.get_all_pkg_matches()
 
@@ -131,7 +132,7 @@ class Source(Base):  # pylint: disable=R0902
         comps = [f for f in listdir(compdir) if 'omnils' in f]
 
         if not comps:
-            LOGGER.warn('No omnils_* files in %s', compdir)
+            LOGGER.warn('[ncm-R] No omnils_* files in %s', compdir)
             self.message('INFO',
                          'ncm-R can\'t find the completion data. '
                          'Please load the R packages you need, '
@@ -161,7 +162,7 @@ class Source(Base):  # pylint: disable=R0902
         pkg_desc = path.join(compdir, 'pack_descriptions')
 
         if not pkg_desc:
-            LOGGER.warn('No pack_descriptions file in %s', compdir)
+            LOGGER.warn('[ncm-R] No pack_descriptions file in %s', compdir)
             self.message('ERROR',
                          'ncm-R can\'t find the completion data. '
                          'Please load the R packages you need, '
@@ -186,7 +187,8 @@ class Source(Base):  # pylint: disable=R0902
         """Update function matches if necessary"""
 
         if self.update_loaded_pkgs():
-            LOGGER.info('Update Loaded R packages: %s', self._pkg_loaded)
+            LOGGER.info('[ncm-R] Update loaded R packages: %s',
+                        self._pkg_loaded)
             funcs = filtr.pkg(self._all_matches, self._pkg_loaded)
             funcs = filtr.struct(funcs, 'function')
             self._fnc_matches = funcs
@@ -290,7 +292,7 @@ class Source(Base):  # pylint: disable=R0902
 
         pipe = rlang.get_pipe(cur_buffer, lnum, col)
 
-        LOGGER.info('word: "%s", func: "%s", pkg: %s, pipe: %s',
+        LOGGER.info('[ncm-R] word: "%s", func: "%s", pkg: %s, pipe: %s',
                     word, func, pkg, pipe)
 
         if func:
@@ -301,5 +303,5 @@ class Source(Base):  # pylint: disable=R0902
 
             matches = self.get_matches(word, pkg=pkg)
 
-        LOGGER.debug("matches: %s", matches)
+        LOGGER.debug('[ncm-R] matches: %s', matches)
         self.complete(info, ctx, ctx['startcol'], matches)
