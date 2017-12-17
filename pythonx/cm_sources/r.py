@@ -41,18 +41,25 @@ class Source(Base):  # pylint: disable=R0902
     def __init__(self, nvim):
         super(Source, self).__init__(nvim)
 
-        self._nvimr = self.nvim.eval('$NVIMR_ID')
-        self._tmpdir = self.nvim.eval('g:rplugin_tmpdir')
+        try:
+            self._nvimr = self.nvim.eval('$NVIMR_ID')
+            self._tmpdir = self.nvim.eval('g:rplugin_tmpdir')
 
-        self._pkg_loaded = list()
-        self._pkg_installed = list()
+            self._pkg_loaded = list()
+            self._pkg_installed = list()
 
-        self._all_matches = list()
-        self._pkg_matches = list()
-        self._fnc_matches = list()
-        self._obj_matches = list()
+            self._all_matches = list()
+            self._pkg_matches = list()
+            self._fnc_matches = list()
+            self._obj_matches = list()
 
-        self.get_all_pkg_matches()
+            self.get_all_pkg_matches()
+        except Exception as error:
+            LOGGER.error('[ncm-R] ncm-R failed to load: %s', error)
+            self.message('ERROR',
+                         'ncm-R failed to load: {}. '.format(error) +
+                         'Try again or report this bug to '
+                         'https://github.com/gaalcaras/ncm-R/issues')
 
     def _r_output_to_file(self, rcmd='', filepath=''):
         """Write output of R command to file
