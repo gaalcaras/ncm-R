@@ -73,7 +73,12 @@ def create_match(word='', struct='', pkg='', info=''):
         match['menu'] += ' = ' + rhs if rhs else ''
 
         if rhs:
-            match['snippet'] = lhs + ' = ${1:' + rhs + '}'
+            quotes = re.search(r'^"(.*)"$', rhs)
+
+            if quotes:
+                match['snippet'] = lhs + ' = "${1:' + quotes.group(1) + '}"'
+            else:
+                match['snippet'] = lhs + ' = ${1:' + rhs + '}'
         else:
             match['snippet'] = lhs + ' = $1'
 
