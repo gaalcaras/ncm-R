@@ -61,6 +61,7 @@ def create_match(word='', struct='', pkg='', info=''):
 
     if struct == 'package':
         match['snippet'] = word + '::$1'
+        match['menu'] = 'package ' + info
 
     if struct == 'argument':
         word_parts = [w.strip() for w in word.split('=')]
@@ -142,6 +143,28 @@ def get_obj_title(info=''):
         return obj_title.group(1).strip()
 
     return ''
+
+
+def to_pkg_matches(lines):
+    """Transform package description lines from Nvim-R into list of NCM matches
+
+    :lines: list of lines from a pack_descriptions file
+    :returns: list of ncm matches
+    """
+
+    cm_list = list()
+
+    for line in lines:
+        parts = re.split('\t', line)
+
+        if len(parts) >= 2:
+            match = create_match(word=parts[0], info=parts[1],
+                                 struct='package')
+
+            if match:
+                cm_list.append(match)
+
+    return cm_list
 
 
 def to_matches(lines):

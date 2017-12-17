@@ -136,6 +136,7 @@ class Source(Base):  # pylint: disable=R0902
                          'ncm-R can\'t find the completion data. '
                          'Please load the R packages you need, '
                          'like the "base" package.')
+            return None
 
         for filename in comps:
             pkg_name = re.search(r'_(\w+)_', filename).group(1)
@@ -143,9 +144,7 @@ class Source(Base):  # pylint: disable=R0902
             if pkg_name in self._pkg_installed:
                 continue
 
-            match = omnils.create_match(word=pkg_name, struct='package')
             self._pkg_installed.append(pkg_name)
-            self._pkg_matches.append(match)
 
             filepath = path.join(compdir, filename)
 
@@ -153,6 +152,26 @@ class Source(Base):  # pylint: disable=R0902
                 comps = [pkg.strip() for pkg in omnil.readlines()]
 
             self._all_matches.extend(omnils.to_matches(comps))
+            self.get_all_pkg_desc()
+
+    def get_all_pkg_desc(self):
+        """Populate package list with candidates """
+
+        compdir = self.nvim.eval('g:rplugin_compldir')
+        pkg_desc = path.join(compdir, 'pack_descriptions')
+
+        if not pkg_desc:
+            LOGGER.warn('No pack_descriptions file in %s', compdir)
+            self.message('ERROR',
+                         'ncm-R can\'t find the completion data. '
+                         'Please load the R packages you need, '
+                         'like the "base" package.')
+            return None
+
+        with open(pkg_desc, 'r') as desc:
+            descriptions = [pkg.strip() for pkg in desc.readlines()]
+
+        self._pkg_matches.extend(omnils.to_pkg_matches(descriptions))
 
     def get_data_matches(self):
         """Return list of matches with datasets from R packages"""
