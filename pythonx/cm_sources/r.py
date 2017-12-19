@@ -8,7 +8,7 @@ by Gabriel Alcaras
 from os import listdir, path
 import re
 
-import neovim
+from neovim.api.nvim import NvimError
 from cm import register_source, getLogger, Base  # pylint: disable=E0401
 
 import omnils  # pylint: disable=E0401
@@ -41,18 +41,32 @@ class Source(Base):  # pylint: disable=R0902
     def __init__(self, nvim):
         super(Source, self).__init__(nvim)
 
+        self._nvimr = ''
+        self._tmpdir = ''
+
+        self._pkg_loaded = list()
+        self._pkg_installed = list()
+
+        self._all_matches = list()
+        self._pkg_matches = list()
+        self._fnc_matches = list()
+        self._obj_matches = list()
+
+    def cm_setup(self):
+        """Set up Source settings"""
+
         try:
             self._nvimr = self.nvim.eval('$NVIMR_ID')
             self._tmpdir = self.nvim.eval('g:rplugin_tmpdir')
+        except NvimError as error:
+            LOGGER.error('[ncm-R] ncm-R failed to establish contact'
+                         'with Nvim-R: %s', error)
+            self.message('ERROR',
+                         'ncm-R failed to load: {}. '.format(error) +
+                         'Did you install the Nvim-R plugin?')
+            return
 
-            self._pkg_loaded = list()
-            self._pkg_installed = list()
-
-            self._all_matches = list()
-            self._pkg_matches = list()
-            self._fnc_matches = list()
-            self._obj_matches = list()
-
+        try:
             self.get_all_pkg_matches()
         except Exception as error:
             LOGGER.error('[ncm-R] ncm-R failed to load: %s', error)
@@ -60,27 +74,7 @@ class Source(Base):  # pylint: disable=R0902
                          'ncm-R failed to load: {}. '.format(error) +
                          'Try again or report this bug to '
                          'https://github.com/gaalcaras/ncm-R/issues')
-
-    def _r_output_to_file(self, rcmd='', filepath=''):
-        """Write output of R command to file
-
-        :rcmd: R command to run
-        :filepath: filepath to write output to
-        """
-        if not rcmd and not filepath:
             return
-
-        rcmd = 'writeLines(text = paste(' + rcmd + ', collapse="\\n"), '
-        rcmd += 'con = "' + filepath + '")'
-
-        try:
-            self.nvim.funcs.SendToNvimcom('\x08' + self._nvimr + rcmd)
-        except neovim.api.nvim.NvimError:
-            LOGGER.warn('[ncm-R] ncm-R can\'t connect to nvimcom.')
-            self.message('ERROR',
-                         'ncm-R can\'t connect to nvimcom. '
-                         'Please start R using Nvim-R '
-                         '(default mapping: <localleader>rf).')
 
     def update_loaded_pkgs(self):
         """Update list of loaded R packages
@@ -88,31 +82,28 @@ class Source(Base):  # pylint: disable=R0902
         :returns: 1 if loaded packages have changed, 0 otherwise
         """
 
-        loadpkg = path.join(self._tmpdir, 'loaded_pkgs_' + self._nvimr)
-        self.nvim.funcs.AddForDeletion(loadpkg)
-
-        self._r_output_to_file('.packages()', loadpkg)
-        old_pkgs = self._pkg_loaded
+        old_pkgs = self._pkg_loaded[:]
 
         try:
-            loaded_pkgs = open(loadpkg, 'r')
-            pkgs = [pkg.strip() for pkg in loaded_pkgs.readlines()]
-            self._pkg_loaded = pkgs
-
-            loaded_pkgs.close()
-        except FileNotFoundError:
+            pkg_loaded = self.nvim.eval('g:rplugin_loaded_libs')
+            self._pkg_loaded = list(reversed(pkg_loaded))
+        except NvimError:
             LOGGER.warn('[ncm-R] Cannot find loaded R packages. '
                         'Please start nvim-R')
             self.message('ERROR',
                          'ncm-R can\'t find loaded R packages. '
                          'Please start R using Nvim-R '
                          '(default mapping: <localleader>rf).')
+            return 0
 
-        new_loaded_pkgs = (set(old_pkgs) == set(self._pkg_loaded))
+        new_loaded_pkgs = (set(old_pkgs) != set(self._pkg_loaded))
         new_pkgs = any(p not in self._pkg_installed for p in self._pkg_loaded)
 
-        if not new_loaded_pkgs and not new_pkgs:
+        if not new_loaded_pkgs and not new_pkgs and self._pkg_installed:
             return 0
+
+        if not self._pkg_installed:
+            self.get_all_pkg_matches()
 
         if new_pkgs:
             LOGGER.info('[ncm-R] Some loaded packages miss an omni file. '
@@ -124,7 +115,6 @@ class Source(Base):  # pylint: disable=R0902
     def get_all_obj_matches(self):
         """Populate candidates with all R objects in the environment"""
 
-        self.nvim.funcs.BuildROmniList("")
         globenv_file = path.join(self._tmpdir, 'GlobalEnvList_' + self._nvimr)
 
         with open(globenv_file, 'r') as globenv:
@@ -140,7 +130,7 @@ class Source(Base):  # pylint: disable=R0902
 
         if not comps:
             LOGGER.warn('[ncm-R] No omnils_* files in %s', compdir)
-            self.message('INFO',
+            self.message('ERROR',
                          'ncm-R can\'t find the completion data. '
                          'Please load the R packages you need, '
                          'like the "base" package.')
@@ -279,10 +269,6 @@ class Source(Base):  # pylint: disable=R0902
         col = ctx['col']
 
         if re.match('^#', cur_buffer[lnum-1]):
-            return
-
-        if not self._pkg_loaded:
-            self.update_loaded_pkgs()
             return
 
         word_match = re.search(self.R_WORD, ctx['typed'])
