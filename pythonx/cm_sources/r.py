@@ -147,7 +147,7 @@ class Source(Base):  # pylint: disable=R0902
             return None
 
         for filename in comps:
-            pkg_name = re.search(r'_(\w+)_', filename).group(1)
+            pkg_name = re.search(r'_(.*)_', filename).group(1)
 
             if pkg_name in self._pkg_installed:
                 continue
