@@ -30,8 +30,12 @@ class Function(object):
         if not self._info:
             return list()
 
-        splits = re.split('\x08', self._info)
-        args = splits[0]
+        if re.search('\x08', self._info):
+            splits = re.split('\x08', self._info)
+            args = splits[0]
+        else:
+            args = self._info
+
         args = re.split('\t', args)
         args = [arg.replace('\x07', ' = ') for arg in args]
 
@@ -133,21 +137,18 @@ class Match(object):  # pylint: disable=too-few-public-methods
     def _process_function(self):
         """Process match when it's a function."""
 
-        if self.info:
-            title = self._get_obj_title()
-            function = Function(word=self.word, args=self.args, info=self.info)
+        title = self._get_obj_title()
+        title = title if title else 'function'
 
-            pkg_name = '{' + self.pkg[0:8] + '}'
-            menu = '{:10}'.format(pkg_name)
-            menu += ' ' + title
-            function = Function(word=self.word, info=self.info)
+        function = Function(word=self.word, info=self.info)
 
-            self.menu = menu
-            self.snippet = function.snippet()
-            self.args = function.args()
+        pkg_name = '{' + self.pkg[0:8] + '}'
+        menu = '{:10}'.format(pkg_name)
+        menu += ' ' + title
 
-        else:
-            self.snippet = self.word + '($1)'
+        self.menu = menu
+        self.snippet = function.snippet()
+        self.args = function.args()
 
     def _process_df(self):
         """Process match when it's a data.frame or a tibble."""

@@ -244,9 +244,9 @@ class Source(Base):  # pylint: disable=R0902
             return self.get_data_matches()
 
         args = list()
-        for source in [self._fnc_matches, self._obj_matches]:
-            args = filtr.arg(source, func, pipe)
-            args.extend(args)
+        for matches in [self._fnc_matches, self._obj_matches]:
+            tmp_args = filtr.arg(matches, func, pipe)
+            args.extend(tmp_args)
 
             if len(args) > 1:
                 break
