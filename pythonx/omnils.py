@@ -76,12 +76,16 @@ class Match(object):  # pylint: disable=too-few-public-methods
     def __init__(self):
 
         self.len = dict(col1=11, col2=11)
+        self.col_layout = True
 
     def setup(self, settings):
         """Change Match setup"""
 
         self.len['col1'] = settings['col1_len']
         self.len['col2'] = settings['col2_len']
+
+        if settings['col_layout'] == 0:
+            self.col_layout = False
 
     def _col(self, value='', col_nb=1, brackets=False):
         """Return formatted column value
@@ -91,6 +95,9 @@ class Match(object):  # pylint: disable=too-few-public-methods
         :brackets: add brackets to the column
         :returns: formatted column value
         """
+
+        if not self.col_layout:
+            return value
 
         column = 'col' + str(col_nb)
 
@@ -103,7 +110,16 @@ class Match(object):  # pylint: disable=too-few-public-methods
             return value[0:self.len[column]-1]
 
     def _menu(self, col1='', col2='', col3=''):
-        """Return formatted menu depending with column values"""
+        """Return formatted menu depending on column values"""
+
+        if not self.col_layout:
+            if col1 and col2 and col3:
+                form = '{} [{}] {}'
+            else:
+                form = '{} {} {}'
+
+            menu = form.format(col1, col2, col3)
+            return menu.strip()
 
         # Return whole column if there's only one
         if col1 and not col2 and not col3:
@@ -158,7 +174,7 @@ class Match(object):  # pylint: disable=too-few-public-methods
         if struct == 'function':
             match = self._process_function(match)
         elif struct in ('data.frame', 'tbl_df'):
-            match = self._process_df(match)
+            match['snippet'] = match['word'] + ' %>%$1'
         elif struct == 'package':
             match = self._process_package(match)
         elif struct == 'argument':
@@ -186,13 +202,6 @@ class Match(object):  # pylint: disable=too-few-public-methods
             match['args'].append(self.build(word=arg, struct='argument'))
 
         match['snippet'] = function.snippet
-
-        return match
-
-    def _process_df(self, match):
-        """Process match when it's a data.frame or a tibble."""
-
-        match['snippet'] = match['word'] + ' %>%$1'
 
         return match
 

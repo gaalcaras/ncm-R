@@ -58,6 +58,7 @@ class Source(Base):  # pylint: disable=R0902
             settings = dict()
             settings['col1_len'] = self.nvim.eval('g:ncm_r_column1_length')
             settings['col2_len'] = self.nvim.eval('g:ncm_r_column2_length')
+            settings['col_layout'] = self.nvim.eval('g:ncm_r_column_layout')
 
             self.matches.setup(settings)
         except NvimError as error:
