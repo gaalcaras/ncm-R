@@ -11,7 +11,7 @@ import re
 from neovim.api.nvim import NvimError
 from cm import register_source, getLogger, Base  # pylint: disable=E0401
 
-import omnils  # pylint: disable=E0401
+from omnils import Matches  # pylint: disable=E0401
 import filtr  # pylint: disable=E0401
 import rlang  # pylint: disable=E0401
 
@@ -41,8 +41,7 @@ class Source(Base):  # pylint: disable=R0902
     def __init__(self, nvim):
         super(Source, self).__init__(nvim)
 
-        self._nvimr = ''
-        self._tmpdir = ''
+        self.matches = Matches()
 
         self._pkg_loaded = list()
         self._pkg_installed = list()
@@ -56,8 +55,11 @@ class Source(Base):  # pylint: disable=R0902
         """Set up Source settings"""
 
         try:
-            self._nvimr = self.nvim.eval('$NVIMR_ID')
-            self._tmpdir = self.nvim.eval('g:rplugin_tmpdir')
+            settings = dict()
+            settings['col1_len'] = self.nvim.eval('g:ncm_r_column1_length')
+            settings['col2_len'] = self.nvim.eval('g:ncm_r_column2_length')
+
+            self.matches.setup(settings)
         except NvimError as error:
             LOGGER.error('[ncm-R] ncm-R failed to establish contact'
                          'with Nvim-R: %s', error)
@@ -115,12 +117,23 @@ class Source(Base):  # pylint: disable=R0902
     def get_all_obj_matches(self):
         """Populate candidates with all R objects in the environment"""
 
-        globenv_file = path.join(self._tmpdir, 'GlobalEnvList_' + self._nvimr)
+        try:
+            nvimr = self.nvim.eval('$NVIMR_ID')
+            tmpdir = self.nvim.eval('g:rplugin_tmpdir')
+        except NvimError as error:
+            LOGGER.error('[ncm-R] ncm-R failed to establish contact'
+                         'with Nvim-R: %s', error)
+            self.message('ERROR',
+                         'ncm-R failed to load: {}. '.format(error) +
+                         'Did you install the Nvim-R plugin?')
+            return
+
+        globenv_file = path.join(tmpdir, 'GlobalEnvList_' + nvimr)
 
         with open(globenv_file, 'r') as globenv:
             objs = [obj.strip() for obj in globenv.readlines()]
 
-        self._obj_matches = omnils.to_matches(objs)
+        self._obj_matches = self.matches.from_omnils(objs)
 
     def get_all_pkg_matches(self):
         """Populate matches list with candidates from every R package"""
@@ -134,7 +147,7 @@ class Source(Base):  # pylint: disable=R0902
                          'ncm-R can\'t find the completion data. '
                          'Please load the R packages you need, '
                          'like the "base" package.')
-            return None
+            return
 
         for filename in comps:
             pkg_name = re.search(r'_(.*)_', filename).group(1)
@@ -149,7 +162,7 @@ class Source(Base):  # pylint: disable=R0902
             with open(filepath, 'r') as omnil:
                 comps = [pkg.strip() for pkg in omnil.readlines()]
 
-            self._all_matches.extend(omnils.to_matches(comps))
+            self._all_matches.extend(self.matches.from_omnils(comps))
             self.get_all_pkg_desc()
 
     def get_all_pkg_desc(self):
@@ -164,12 +177,12 @@ class Source(Base):  # pylint: disable=R0902
                          'ncm-R can\'t find the completion data. '
                          'Please load the R packages you need, '
                          'like the "base" package.')
-            return None
+            return
 
         with open(pkg_desc, 'r') as desc:
             descriptions = [pkg.strip() for pkg in desc.readlines()]
 
-        self._pkg_matches.extend(omnils.to_pkg_matches(descriptions))
+        self._pkg_matches.extend(self.matches.from_pkg_desc(descriptions))
 
     def get_data_matches(self):
         """Return list of matches with datasets from R packages"""

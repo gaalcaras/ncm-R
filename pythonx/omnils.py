@@ -8,7 +8,7 @@ by Gabriel Alcaras
 import re
 
 
-class Function(object):
+class Function(object):  # pylint: disable=too-few-public-methods
 
     """Function object to generate snippet and arguments."""
 
@@ -18,8 +18,8 @@ class Function(object):
         self._word = word
         self._info = info
 
-        self._snippet = ''
-        self._args = list()
+        self.args = list()
+        self.snippet = ''
 
         self._get_args()
         self._make_snippet()
@@ -28,7 +28,7 @@ class Function(object):
         """Get function arguments based on omniline info"""
 
         if not self._info:
-            return list()
+            return
 
         if re.search('\x08', self._info):
             splits = re.split('\x08', self._info)
@@ -39,205 +39,244 @@ class Function(object):
         args = re.split('\t', args)
         args = [arg.replace('\x07', ' = ') for arg in args]
 
-        self._args = args
+        self.args = args
 
     def _make_snippet(self):
         """Create function snippet with its arguments"""
 
-        self._snippet = self._word + '('
+        self.snippet = self._word + '('
 
-        if self._args[0] == 'NO_ARGS':
-            self._snippet += ')'
+        if self.args[0] == 'NO_ARGS':
+            self.snippet += ')'
             return
 
         # Get arguments without no default value (usually mandatory arguments)
-        mand_args = [a for a in self._args if '=' not in a]
+        mand_args = [a for a in self.args if '=' not in a]
 
         for numarg, arg in enumerate(mand_args):
             if arg in ('...') and numarg > 0:
                 continue
 
-            self._snippet += '${' + str(numarg+1) + ':' + arg + '}, '
+            self.snippet += '${' + str(numarg+1) + ':' + arg + '}, '
 
         if len(mand_args) >= 1:
-            self._snippet = self._snippet[:-2]
+            self.snippet = self.snippet[:-2]
         else:
-            self._snippet += '$1'
+            self.snippet += '$1'
 
-        self._snippet += ')'
-
-    def args(self):
-        """Return list of arguments as NCM matches"""
-
-        margs = list()
-        for arg in self._args:
-            if arg in ('NO_ARGS', '...'):
-                continue
-
-            marg = Match(word=arg, struct='argument')
-            margs.append(marg.get())
-
-        return margs
-
-    def snippet(self):
-        """Return function snippet"""
-
-        return self._snippet
+        self.snippet += ')'
 
 
 class Match(object):  # pylint: disable=too-few-public-methods
 
     """NCM match"""
 
-    def __init__(self, word='', struct='', pkg='', info=''):
-        """Initialize match object
+    MIN_LEN = dict(col1=7, col2=7)
+
+    def __init__(self):
+
+        self.len = dict(col1=11, col2=11)
+
+    def setup(self, settings):
+        """Change Match setup"""
+
+        self.len['col1'] = settings['col1_len']
+        self.len['col2'] = settings['col2_len']
+
+    def _col(self, value='', col_nb=1, brackets=False):
+        """Return formatted column value
+
+        :value: content of the column
+        :col_nb: position of the column
+        :brackets: add brackets to the column
+        :returns: formatted column value
+        """
+
+        column = 'col' + str(col_nb)
+
+        if self.len[column] < self.MIN_LEN[column]:
+            return ''
+        else:
+            if brackets:
+                return '{' + value[0:self.len[column]-3] + '}'
+
+            return value[0:self.len[column]-1]
+
+    def _menu(self, col1='', col2='', col3=''):
+        """Return formatted menu depending with column values"""
+
+        # Return whole column if there's only one
+        if col1 and not col2 and not col3:
+            return col1
+
+        menu = ''
+
+        # If there's a first column and it's wide enough
+        if col1 and self.len['col1'] >= self.MIN_LEN['col1']:
+            form = '{:' + str(self.len['col1']-1) + '} '
+            menu += form.format(col1)
+
+        # If there's a second column and it's wide enough
+        if col2 and self.len['col2'] >= self.MIN_LEN['col2']:
+            form = '{:' + str(self.len['col2']-1) + '} '
+            menu += form.format(col2)
+
+        # Always add the third column if it exists
+        if col3:
+            menu += col3
+
+        return menu.strip()
+
+    def build(self, word='', struct='', pkg='', info=''):
+        """Return NCM match
 
         :word: word (appears in menu)
         :struct: type (str() in R)
         :pkg: pkg
         :info: additional information about the object (args, doc, etc.)
+        :returns: NCM match
         """
 
-        if not word and not struct:
-            return None
+        match = dict(word=word, struct=struct, pkg=pkg, info=info)
 
-        self.word = word
-        self.struct = struct
-        self.pkg = pkg if pkg else ''
-        self.info = info if info else ''
+        if match['info']:
+            obj_title = re.search(r'\x08(.*)\x05', match['info'])
 
-        self.args = list()
-        self.snippet = ''
-        self.menu = '{:10}'.format(struct[0:10])
+            if obj_title:
+                match['title'] = obj_title.group(1).strip()
+
+        title = ''
+
+        if 'title' in match:
+            title = match['title']
+            del match['title']
+
+        match['menu'] = self._menu(self._col(match['pkg'], 1, brackets=True),
+                                   self._col(match['struct'], 2),
+                                   title)
 
         if struct == 'function':
-            self._process_function()
+            match = self._process_function(match)
         elif struct in ('data.frame', 'tbl_df'):
-            self._process_df()
+            match = self._process_df(match)
         elif struct == 'package':
-            self._process_package()
+            match = self._process_package(match)
         elif struct == 'argument':
-            self._process_argument()
+            match = self._process_argument(match)
         else:
             pass
 
-    def _get_obj_title(self):
-        """Get object title, e.g. function or dataset description"""
+        if '$' in word:
+            match = self._process_variable(match)
 
-        if not self.info:
-            return list()
+        del match['info']
 
-        obj_title = re.search(r'\x08(.*)\x05', self.info)
+        return match
 
-        if obj_title:
-            return obj_title.group(1).strip()
-
-        return ''
-
-    def _process_function(self):
+    def _process_function(self, match):
         """Process match when it's a function."""
 
-        title = self._get_obj_title()
-        title = title if title else 'function'
+        function = Function(word=match['word'], info=match['info'])
 
-        function = Function(word=self.word, info=self.info)
+        match['args'] = list()
+        for arg in function.args:
+            if arg in ('NO_ARGS', '...'):
+                continue
 
-        pkg_name = '{' + self.pkg[0:8] + '}'
-        menu = '{:10}'.format(pkg_name)
-        menu += ' ' + title
+            match['args'].append(self.build(word=arg, struct='argument'))
 
-        self.menu = menu
-        self.snippet = function.snippet()
-        self.args = function.args()
+        match['snippet'] = function.snippet
 
-    def _process_df(self):
+        return match
+
+    def _process_df(self, match):
         """Process match when it's a data.frame or a tibble."""
 
-        title = self._get_obj_title()
+        match['snippet'] = match['word'] + ' %>%$1'
 
-        self.snippet = self.word + ' %>%$1'
-        pkg_name = '{' + self.pkg[0:8] + '}'
-        self.menu = '{:10}'.format(pkg_name)
-        self.menu += ' {:10}'.format(self.struct[0:10])
-        self.menu += ' ' + title
+        return match
 
-    def _process_package(self):
+    def _process_package(self, match):
         """Process match when it's an R package."""
 
-        self.snippet = self.word + '::$1'
-        self.menu = 'package ' + self.info
+        match['snippet'] = match['word'] + '::$1'
+        match['menu'] = self._menu(self._col('package', 1),
+                                   match['info'])
 
-    def _process_argument(self):
+        return match
+
+    def _process_argument(self, match):
         """Process match when it's a function argument."""
 
-        word_parts = [w.strip() for w in self.word.split('=')]
+        word_parts = [w.strip() for w in match['word'].split('=')]
         lhs = word_parts[0]
         rhs = word_parts[1] if len(word_parts) == 2 else ''
 
-        self.word = lhs
-        self.menu = '{:10}'.format('param')
-        self.menu += ' = ' + rhs if rhs else ''
+        match['word'] = lhs
+
+        col2 = '= ' + rhs if rhs else ''
+        match['menu'] = self._menu(self._col('argument', 1), col2)
 
         if rhs:
             quotes = re.search(r'^"(.*)"$', rhs)
 
             if quotes:
-                self.snippet = lhs + ' = "${1:' + quotes.group(1) + '}"'
+                match['snippet'] = lhs + ' = "${1:' + quotes.group(1) + '}"'
             else:
-                self.snippet = lhs + ' = ${1:' + rhs + '}'
+                match['snippet'] = lhs + ' = ${1:' + rhs + '}'
         else:
-            self.snippet = lhs + ' = $1'
+            match['snippet'] = lhs + ' = $1'
 
-    def get(self):
-        """Return NCM match as a dictionary."""
+        return match
 
-        match = dict(word=self.word, menu=self.menu, pkg=self.pkg,
-                     struct=self.struct, snippet=self.snippet)
+    def _process_variable(self, match):
+        """Process match when it's a variable of a data.frame."""
 
-        if self.args:
-            match['args'] = self.args
+        match['menu'] = self._menu(self._col('variable', 1),
+                                   match['struct'])
 
         return match
 
 
-def to_pkg_matches(lines):
-    """Transform package description lines from Nvim-R into list of NCM matches
+class Matches(object):
 
-    :lines: list of lines from a pack_descriptions file
-    :returns: list of ncm matches
-    """
+    """Transform omnils lines into list of NCM matches"""
 
-    cm_list = list()
+    def __init__(self):
+        self.match = Match()
 
-    for line in lines:
-        parts = re.split('\t', line)
+    def setup(self, settings):
+        """Change Matches setup"""
 
-        if len(parts) >= 2:
-            match = Match(word=parts[0], info=parts[1], struct='package')
+        self.match.setup(settings)
 
-            if match:
-                cm_list.append(match.get())
+    def from_omnils(self, lines):
+        """Return list matches given lines of an omnils file"""
 
-    return cm_list
+        matches = list()
 
+        for line in lines:
+            parts = re.split('\x06', line)
 
-def to_matches(lines):
-    """Transform omni lists from Nvim-R into list of NCM matches
+            if len(parts) >= 5:
+                matches.append(self.match.build(word=parts[0],
+                                                struct=parts[1],
+                                                pkg=parts[3],
+                                                info=parts[4]))
 
-    :lines: list of lines from an omni list
-    :returns: list of ncm matches
-    """
+        return matches
 
-    cm_list = list()
+    def from_pkg_desc(self, lines):
+        """Return list of matches given lines of package description file"""
 
-    for line in lines:
-        parts = re.split('\x06', line)
+        matches = list()
 
-        if len(parts) >= 5:
-            match = Match(word=parts[0], struct=parts[1], pkg=parts[3],
-                          info=parts[4])
+        for line in lines:
+            parts = re.split('\t', line)
 
-            if match:
-                cm_list.append(match.get())
+            if len(parts) >= 2:
+                matches.append(self.match.build(word=parts[0],
+                                                info=parts[1],
+                                                struct='package'))
 
-    return cm_list
+        return matches
