@@ -1,0 +1,107 @@
+*ncm_r*                         Asynchronous R completion for NeoVim and Vim 8
+
+                                  ncm-R~
+
+
+       ________   ________  _____ ______                  ________~
+      |\   ___  \|\   ____\|\   _ \  _   \               |\   __  \~
+      \ \  \\ \  \ \  \___|\ \  \\\__\ \  \  ____________\ \  \|\  \~
+       \ \  \\ \  \ \  \    \ \  \\|__| \  \|\____________\ \   _  _\~
+        \ \  \\ \  \ \  \____\ \  \    \ \  \|____________|\ \  \\  \|~
+         \ \__\\ \__\ \_______\ \__\    \ \__\              \ \__\\ _\~
+          \|__| \|__|\|_______|\|__|     \|__|               \|__|\|__|~
+
+
+
+Version:            0.6
+Original Author:    Gabriel Alcaras <gaby.alcaras@gmail.com>
+License:            GNU GPLv3
+
+TABLE OF CONTENTS                                             *ncm_r_contents*
+============================================================================
+
+    Introduction ....................... |ncm_r_intro|
+    Install ............................ |ncm_r_install|
+    Usage .............................. |ncm_r_usage|
+      Layout ........................... |ncm_r_layout|
+      Options .......................... |ncm_r_options|
+
+INTRODUCTION                                                      *ncm_r_into*
+============================================================================
+
+ncm-R extends the nvim-completion-manager (NCM) framework to provide
+asynchronous completion for the R language. It relies on the great plugin
+nvim-R to get the completion data.
+
+See:
++ https://github.com/roxma/nvim-completion-manager
++ https://github.com/jalvesaq/Nvim-R
+
+INSTALL                                                        *ncm_r_install*
+============================================================================
+
+Use your favorite plugin manager. For instance, with vim-plug:
+>
+Plug 'roxma/nvim-completion-manager'
+Plug 'jalvesaq/Nvim-R'
+Plug 'gaalcaras/ncm-R'
+
+" Vim 8 only
+if !has('nvim')
+    Plug 'roxma/vim-hug-neovim-rpc'
+endif
+
+" Optional: for snippet support
+Plug 'sirver/UltiSnips'
+<
+
+Also see |NCM-install| and |Nvim-R-installation|.
+
+USAGE                                                            *ncm_r_usage*
+============================================================================
+
+    Usage .............................. |ncm_r_usage|
+      Layout ........................... |ncm_r_layout|
+      Options .......................... |ncm_r_options|
+
+Layout                                                          *ncm_r_layout*
+----------------------------------------------------------------------------
+
+The default pop-up menu follows a 3 column layout:
+
+| Type      | Column 1  | Column 2            | Column 3             |
+| ---       | ---       | ---                 | ---                  |
+| Argument  | `argument`  | `= DEFAULT_VALUE`     |                      |
+| Dataset   | `{package}` | Type of dataset     | Dataset description  |
+| Functions | `{package}` | `function`            | Function description |
+| Package   | `package`   | Package description |                      |
+| Variable  | `variable`  | Type of variable    |                      |
+
+This layout can be customized via |ncm_r_options|.
+
+Options                                                        *ncm_r_options*
+----------------------------------------------------------------------------
+
+*g:ncm_r_column1_length*
+
+  Set length of the first column.
+
+  If the value is below the minimum length, the column is removed altogether.
+
+  Minimum length: 7
+  Default value:  13
+
+*g:ncm_r_column2_length*
+
+  Set length of the second column.
+
+  If the value is below the minimum length, the column is removed altogether.
+
+  Minimum length: 7
+  Default value:  11
+
+*g:ncm_r_column_layout*
+
+  Enable/disable the column layout by removing all padding and alignment.
+
+  Default value:  1
