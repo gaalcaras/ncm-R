@@ -84,7 +84,7 @@ Options                                                        *ncm_r_options*
 
 *g:ncm_r_column1_length*
 
-  Set length of the first column.
+  Set length of the first column in the pop-up menu (see |ncm_r_layout|).
 
   If the value is below the minimum length, the column is removed altogether.
 
@@ -93,7 +93,7 @@ Options                                                        *ncm_r_options*
 
 *g:ncm_r_column2_length*
 
-  Set length of the second column.
+  Set length of the second column in the pop-up menu (see |ncm_r_layout|).
 
   If the value is below the minimum length, the column is removed altogether.
 
@@ -102,6 +102,7 @@ Options                                                        *ncm_r_options*
 
 *g:ncm_r_column_layout*
 
-  Enable/disable the column layout by removing all padding and alignment.
+  Enable/disable the column layout in the pop-up menu by removing all padding
+  and alignment.
 
   Default value:  1

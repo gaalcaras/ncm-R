@@ -76,7 +76,7 @@ any editor other than Neovim
 
 It should be noted that [Nvim-R](https://github.com/jalvesaq/Nvim-R) already
 comes with OmniCompletion. It's lightweight and it works well, but you need to
-ask for completion (<kbd><C-x><C-o></kbd>) and it
+ask for completion (<kbd>\<C-x\>\<C-o\></kbd>) and it
 doesn't support pipelines.
 
 ncm-R is built on top of Nvim-R completion data to offer more features, while
@@ -125,21 +125,21 @@ R console to load them in the global environment.  Likewise, you won't see
 
 The default pop-up menu follows a 3 column layout:
 
-| Type | Column 1 | Column 2 | Column 3 |
-| --- | --- | --- | --- |
-| Argument | `argument` | `= DEFAULT_VALUE` | |
-| Dataset | `{package}` | Type of dataset (e.g. `tibble`) | Short dataset description|
-| Functions | `{package}` | `function` | Short function description |
-| Package | `package` | Short package description | |
-| Variable | `variable` | Type of variable (e.g. `integer`)| |
+| Type      | Column 1    | Column 2                          | Column 3                   |
+| ---       | ---         | ---                               | ---                        |
+| Argument  | `argument`  | `= DEFAULT_VALUE`                 |                            |
+| Dataset   | `{package}` | Type of dataset (e.g. `tibble`)   | Short dataset description  |
+| Functions | `{package}` | `function`                        | Short function description |
+| Package   | `package`   | Short package description         |                            |
+| Variable  | `variable`  | Type of variable (e.g. `integer`) |                            |
 
 The length of the two first columns can be changed in your `.vimrc`. Choosing
 a value below the minimum length will remove the column altogether:
 
-| Column | Minimum length | Default length | Global variable |
-| --- | --- | --- |
-| Column #1 | 7 | 13 | `g:ncm_r_column1_length` |
-| Column #2 | 7 | 11 | `g:ncm_r_column2_length` |
+| Column    | Minimum length | Default length | Global variable          |
+| ---       | ---            | ---            | ---                      |
+| Column #1 | 7              | 13             | `g:ncm_r_column1_length` |
+| Column #2 | 7              | 11             | `g:ncm_r_column2_length` |
 
 Finally, if you don't want the columns to be aligned, you can disable all
 column padding:
