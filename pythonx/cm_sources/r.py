@@ -42,6 +42,7 @@ class Source(Base):  # pylint: disable=R0902
         super(Source, self).__init__(nvim)
 
         self.matches = Matches()
+        self._settings = dict()
 
         self._pkg_loaded = list()
         self._pkg_installed = list()
@@ -51,6 +52,16 @@ class Source(Base):  # pylint: disable=R0902
         self._fnc_matches = list()
         self._obj_matches = list()
 
+    def _error(self, msg, error=''):
+        """Output error in logs and in nvim"""
+
+        msg_format = '[ncm-R] {}'
+        msg_format += ': {}' if error else '{}'
+        msg = msg_format.format(msg, error)
+
+        LOGGER.error(msg)
+        self.message('ERROR', msg)
+
     def cm_setup(self):
         """Set up Source settings"""
 
@@ -59,25 +70,18 @@ class Source(Base):  # pylint: disable=R0902
             settings['col1_len'] = self.nvim.eval('g:ncm_r_column1_length')
             settings['col2_len'] = self.nvim.eval('g:ncm_r_column2_length')
             settings['col_layout'] = self.nvim.eval('g:ncm_r_column_layout')
+            settings['nvimr'] = self.nvim.eval('$NVIMR_ID')
+            settings['tmpdir'] = self.nvim.eval('g:rplugin_tmpdir')
+            settings['cmpdir'] = self.nvim.eval('g:rplugin_compldir')
 
-            self.matches.setup(settings)
-        except NvimError as error:
-            LOGGER.error('[ncm-R] ncm-R failed to establish contact'
-                         'with Nvim-R: %s', error)
-            self.message('ERROR',
-                         'ncm-R failed to load: {}. '.format(error) +
-                         'Did you install the Nvim-R plugin?')
-            return
+            self._settings = settings
+        except NvimError:
+            self._error('Can\'t load ncm-R and Nvim-R options. '
+                        'Did you install the Nvim-R plugin?')
+            raise
 
-        try:
-            self.get_all_pkg_matches()
-        except Exception as error:
-            LOGGER.error('[ncm-R] ncm-R failed to load: %s', error)
-            self.message('ERROR',
-                         'ncm-R failed to load: {}. '.format(error) +
-                         'Try again or report this bug to '
-                         'https://github.com/gaalcaras/ncm-R/issues')
-            return
+        self.matches.setup(settings)
+        self.get_all_pkg_matches()
 
     def update_loaded_pkgs(self):
         """Update list of loaded R packages
@@ -91,13 +95,10 @@ class Source(Base):  # pylint: disable=R0902
             pkg_loaded = self.nvim.eval('g:rplugin_loaded_libs')
             self._pkg_loaded = list(reversed(pkg_loaded))
         except NvimError:
-            LOGGER.warn('[ncm-R] Cannot find loaded R packages. '
-                        'Please start nvim-R')
-            self.message('ERROR',
-                         'ncm-R can\'t find loaded R packages. '
-                         'Please start R using Nvim-R '
-                         '(default mapping: <localleader>rf).')
-            return 0
+            self._error('Can\'t find loaded R packages. '
+                        'Please start R using Nvim-R '
+                        '(default mapping: <localleader>rf).')
+            raise
 
         new_loaded_pkgs = (set(old_pkgs) != set(self._pkg_loaded))
         new_pkgs = any(p not in self._pkg_installed for p in self._pkg_loaded)
@@ -118,18 +119,8 @@ class Source(Base):  # pylint: disable=R0902
     def get_all_obj_matches(self):
         """Populate candidates with all R objects in the environment"""
 
-        try:
-            nvimr = self.nvim.eval('$NVIMR_ID')
-            tmpdir = self.nvim.eval('g:rplugin_tmpdir')
-        except NvimError as error:
-            LOGGER.error('[ncm-R] ncm-R failed to establish contact'
-                         'with Nvim-R: %s', error)
-            self.message('ERROR',
-                         'ncm-R failed to load: {}. '.format(error) +
-                         'Did you install the Nvim-R plugin?')
-            return
-
-        globenv_file = path.join(tmpdir, 'GlobalEnvList_' + nvimr)
+        globenv_file = path.join(self._settings['tmpdir'],
+                                 'GlobalEnvList_' + self._settings['nvimr'])
 
         with open(globenv_file, 'r') as globenv:
             objs = [obj.strip() for obj in globenv.readlines()]
@@ -139,51 +130,43 @@ class Source(Base):  # pylint: disable=R0902
     def get_all_pkg_matches(self):
         """Populate matches list with candidates from every R package"""
 
-        compdir = self.nvim.eval('g:rplugin_compldir')
-        comps = [f for f in listdir(compdir) if 'omnils' in f]
+        cmpdir = self._settings['cmpdir']
 
-        if not comps:
-            LOGGER.warn('[ncm-R] No omnils_* files in %s', compdir)
-            self.message('ERROR',
-                         'ncm-R can\'t find the completion data. '
-                         'Please load the R packages you need, '
-                         'like the "base" package.')
-            return
+        try:
+            comps = [f for f in listdir(cmpdir) if 'omnils' in f]
 
-        for filename in comps:
-            pkg_name = re.search(r'_(.*)_', filename).group(1)
+            if not comps:
+                raise FileNotFoundError('Could not find any omnils_* files '
+                                        'in {}.'.format(cmpdir))
 
-            if pkg_name in self._pkg_installed:
-                continue
+            for filename in comps:
+                pkg_name = re.search(r'_(.*)_', filename).group(1)
 
-            self._pkg_installed.append(pkg_name)
+                if pkg_name in self._pkg_installed:
+                    continue
 
-            filepath = path.join(compdir, filename)
+                self._pkg_installed.append(pkg_name)
 
-            with open(filepath, 'r') as omnil:
-                comps = [pkg.strip() for pkg in omnil.readlines()]
+                filepath = path.join(self._settings['cmpdir'], filename)
 
-            self._all_matches.extend(self.matches.from_omnils(comps))
-            self.get_all_pkg_desc()
+                with open(filepath, 'r') as omnil:
+                    comps = [pkg.strip() for pkg in omnil.readlines()]
 
-    def get_all_pkg_desc(self):
-        """Populate package list with candidates """
+                self._all_matches.extend(self.matches.from_omnils(comps))
 
-        compdir = self.nvim.eval('g:rplugin_compldir')
-        pkg_desc = path.join(compdir, 'pack_descriptions')
+            pkg_desc = path.join(cmpdir, 'pack_descriptions')
 
-        if not pkg_desc:
-            LOGGER.warn('[ncm-R] No pack_descriptions file in %s', compdir)
-            self.message('ERROR',
-                         'ncm-R can\'t find the completion data. '
-                         'Please load the R packages you need, '
-                         'like the "base" package.')
-            return
+            with open(pkg_desc, 'r') as desc:
+                descriptions = [pkg.strip() for pkg in desc.readlines()]
 
-        with open(pkg_desc, 'r') as desc:
-            descriptions = [pkg.strip() for pkg in desc.readlines()]
-
-        self._pkg_matches.extend(self.matches.from_pkg_desc(descriptions))
+            self._pkg_matches.extend(self.matches.from_pkg_desc(descriptions))
+        except FileNotFoundError:
+            self._error('Can\'t find completion files. Please load the '
+                        'R packages you need (e.g. "base" or "utils").')
+            raise
+        except Exception as error:
+            self._error('Could not load completion data', error)
+            raise
 
     def get_data_matches(self):
         """Return list of matches with datasets from R packages"""
