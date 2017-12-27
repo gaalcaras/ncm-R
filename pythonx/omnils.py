@@ -57,7 +57,7 @@ class Function(object):  # pylint: disable=too-few-public-methods
             if arg in ('...') and numarg > 0:
                 continue
 
-            self.snippet += '${' + str(numarg+1) + ':' + arg + '}, '
+            self.snippet += '${' + str(numarg + 1) + ':' + arg + '}, '
 
         if len(mand_args) >= 1:
             self.snippet = self.snippet[:-2]
@@ -105,9 +105,9 @@ class Match(object):  # pylint: disable=too-few-public-methods
             return ''
         else:
             if brackets:
-                return '{' + value[0:self.len[column]-3] + '}'
+                return '{' + value[0:self.len[column] - 3] + '}'
 
-            return value[0:self.len[column]-1]
+            return value[0:self.len[column] - 1]
 
     def _menu(self, col1='', col2='', col3=''):
         """Return formatted menu depending on column values"""
@@ -129,12 +129,12 @@ class Match(object):  # pylint: disable=too-few-public-methods
 
         # If there's a first column and it's wide enough
         if col1 and self.len['col1'] >= self.MIN_LEN['col1']:
-            form = '{:' + str(self.len['col1']-1) + '} '
+            form = '{:' + str(self.len['col1'] - 1) + '} '
             menu += form.format(col1)
 
         # If there's a second column and it's wide enough
         if col2 and self.len['col2'] >= self.MIN_LEN['col2']:
-            form = '{:' + str(self.len['col2']-1) + '} '
+            form = '{:' + str(self.len['col2'] - 1) + '} '
             menu += form.format(col2)
 
         # Always add the third column if it exists
@@ -179,6 +179,10 @@ class Match(object):  # pylint: disable=too-few-public-methods
             match = self._process_package(match)
         elif struct == 'argument':
             match = self._process_argument(match)
+        elif struct == 'option':
+            match = self._process_option(match)
+        elif struct in ('value', 'def. value'):
+            match['menu'] = self._menu(self._col(struct, 1))
         else:
             pass
 
@@ -238,6 +242,49 @@ class Match(object):  # pylint: disable=too-few-public-methods
 
         return match
 
+    def _process_option(self, match):
+        """Process match when it's a chunk option."""
+
+        word_parts = [w.strip() for w in match['word'].split('=')]
+        lhs = word_parts[0]
+        rhs = word_parts[1] if len(word_parts) == 2 else ''
+
+        match['word'] = lhs
+        match['args'] = list()
+
+        if rhs:
+            quotes = re.search(r'^"(.*)"$', rhs)
+
+            if quotes:
+                default = quotes.group(1)
+                snip = '"' + default + '"'
+
+                if re.search(r'|', default):
+                    values = quotes.group(1).split('|')
+                    default = '"' + values[0] + '"'
+                    snip = ''
+
+                    for value in values:
+                        struct = 'value'
+                        if value == values[0]:
+                            struct = 'def. value'
+
+                        match['args'].append(self.build(word=value,
+                                                        struct=struct))
+
+                match['snippet'] = lhs + ' = "${1:' + snip + '}"'
+            else:
+                default = rhs
+                match['snippet'] = lhs + ' = ${1:' + default + '}'
+        else:
+            default = ''
+            match['snippet'] = lhs + ' = $1'
+
+        col2 = '= ' + default if default else ''
+        match['menu'] = self._menu(self._col('option', 1), col2)
+
+        return match
+
     def _process_variable(self, match):
         """Process match when it's a variable of a data.frame."""
 
@@ -287,5 +334,15 @@ class Matches(object):
                 matches.append(self.match.build(word=parts[0],
                                                 info=parts[1],
                                                 struct='package'))
+
+        return matches
+
+    def from_chunk_options(self, lines):
+        """Return list of matches given lines of R chunk options"""
+
+        matches = list()
+
+        for line in lines:
+            matches.append(self.match.build(word=line, struct='option'))
 
         return matches

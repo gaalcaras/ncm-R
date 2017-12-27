@@ -22,10 +22,10 @@ def get_pipe(buff, numline, numcol):
     r_block = re.compile(r'<-')
 
     no_pipe = 0
-    for numl in range(numline-1, -1, -1):
+    for numl in range(numline - 1, -1, -1):
         line = buff[numl]
 
-        if numl == numline-1:
+        if numl == numline - 1:
             # If line is where the cursor is currently at
             line = line[0:numcol]
             r_pipeline = re.compile(r'%>%')
@@ -64,7 +64,7 @@ def get_open_bracket_col(typed=''):
     quotes = ''
 
     for col, char in enumerate(typed):
-        if char in ('"', "'") and typed[col-1] != "\"":
+        if char in ('"', "'") and typed[col - 1] != "\"":
             if not inside_quotes:
                 quotes = char
                 inside_quotes = True
@@ -104,10 +104,10 @@ def get_function(buff, numline, numcol):
     r_block = re.compile(r'<-')
 
     no_func = 0
-    for numl in range(numline-1, -1, -1):
+    for numl in range(numline - 1, -1, -1):
         line = buff[numl]
 
-        line = line[0:numcol-1] if numl == numline-1 else line
+        line = line[0:numcol - 1] if numl == numline - 1 else line
 
         open_bracket = get_open_bracket_col(line)
 
@@ -125,14 +125,25 @@ def get_function(buff, numline, numcol):
                 # one does not match an argument either
                 return ['', '']
         else:
-            line = line[0:open_bracket+1]
+            line = line[0:open_bracket + 1]
 
         func_match = re.search(r_func, line)
         func = func_match.group('fnc') if func_match else ''
         pkg = func_match.group('pkg') if func_match else ''
 
-        if (pkg and numl == numline-1) or func:
+        if (pkg and numl == numline - 1) or func:
             return [pkg, func]
 
         if numl == 0 and not pkg and not func:
             return ['', '']
+
+
+def get_option(typed=''):
+    """Return option name when assigning its value"""
+
+    pattern = re.search(r',\s?([\w\.]+)\s?=\s?"$', typed)
+
+    if pattern:
+        return pattern.group(1)
+
+    return None

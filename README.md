@@ -15,6 +15,7 @@ ncm-R extends the
 * [Features](#features)
   * [Completion](#completion)
   * [Snippets](#snippets)
+  * [R Markdown and Rnoweb](#r-markdown-and-rnoweb)
 * [Who should use this plugin?](#who-should-use-this-plugin)
 * [Installation](#installation)
 * [Usage](#usage)
@@ -34,7 +35,7 @@ ncm-R extends the
 
 ![variables](https://user-images.githubusercontent.com/6551953/33718172-ce45f746-db5c-11e7-878f-818f5a7059b3.gif)
 
-**Functions** from all currently loaded packages or from precise package with `package::`:
+**Functions** from loaded packages or from specific package with `package::`:
 
 ![functions](https://user-images.githubusercontent.com/6551953/33718180-d4510ff4-db5c-11e7-9536-8e8b52f9630f.gif)
 
@@ -61,9 +62,15 @@ If [UltiSnips](https://github.com/sirver/UltiSnips) is installed, pressing
 snippets**:
 
 + `dataframe` -> `dataframe %>%`
-+ `function` -> `function(arg1, arg2, ...)` (expands mandatory arguments only)
++ `function` -> `function(arg1, arg2, ...)` (expands only arguments with no
+  default value)
 + `package` -> `package::`
 + `argument` -> `argument = DEFAULT_VALUE`
+
+### R Markdown and Rnoweb
+
++ R completion available in R code chunks
++ Completion for chunk options
 
 ## Who should use this plugin?
 
@@ -99,6 +106,9 @@ endif
 
 " Optional: for snippet support
 Plug 'sirver/UltiSnips'
+
+" Optional: better Rnoweb support (LaTeX completion)
+Plug 'lervag/vimtex'
 ```
 
 Please make sure that you fulfill all [NCM

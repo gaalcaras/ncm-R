@@ -21,6 +21,7 @@ TABLE OF CONTENTS                                             *ncm_r_contents*
 ============================================================================
 
     Introduction ....................... |ncm_r_intro|
+    Features ........................... |ncm_r_features|
     Install ............................ |ncm_r_install|
     Usage .............................. |ncm_r_usage|
       Layout ........................... |ncm_r_layout|
@@ -36,6 +37,29 @@ nvim-R to get the completion data.
 See:
 + https://github.com/roxma/nvim-completion-manager
 + https://github.com/jalvesaq/Nvim-R
+
+FEATURES                                                      *ncm_r_features*
+============================================================================
+
+COMPLETION:
+  + Objects from the global R environment
+  + Functions from loaded packages or from specific package with `package::`
+  + Packages inside `library()` and `require()`
+  + Datasets inside `data()`
+  + Arguments inside function
+  + Variables inside data transformation pipelines (`%>%`) and building ggplots (`+`)
+
+SNIPPETS (with |UltiSnips| installed):
+  + `dataframe` -> `dataframe %>%`
+  + `function` -> `function(arg1, arg2, ...)` (expands only arguments with no
+    default value)
+  + `package` -> `package::`
+  + `argument` -> `argument = DEFAULT_VALUE`
+
+R MARKDOWN and RNOWEB:
+  + R completion inside chunks
+  + Chunk options completion
+
 
 INSTALL                                                        *ncm_r_install*
 ============================================================================

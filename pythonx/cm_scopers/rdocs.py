@@ -7,38 +7,48 @@ by Gabriel Alcaras
 
 import re
 import copy
-from cm import Base, getLogger  # pylint: disable=E0401
-
-LOGGER = getLogger(__name__)
+from cm import Base  # pylint: disable=E0401
 
 
 class Scoper(Base):  # pylint: disable=too-few-public-methods
 
     """Scoper for RMarkdown"""
 
-    scopes = ['rmd']
+    scopes = ['rmd', 'rnoweb']
+
+    def get_scope(self, ctx, src):
+        """Identify scope"""
+
+        scope = None
+        cur_pos = self.get_pos(ctx['lnum'], ctx['col'], src)
+
+        pat = re.compile(
+            r'^((`{3})|(<<)) \s* (?(2)\{r)([^\n]*) \s* \n'
+            r'(.*?)'
+            r'^(?(3)@|\2) \s* (?:\n+|$)', re.M | re.X | re.S)
+
+        groups = {4: 'rchunk', 5: 'r'}
+
+        for chunk in pat.finditer(src):
+            if chunk.start() > cur_pos:
+                break
+
+            for grp_nb, grp_scope in groups.items():
+                group = chunk.group(grp_nb)
+                start = chunk.start(grp_nb)
+
+                if group and start <= cur_pos <= chunk.end(grp_nb):
+                    scope = dict(src=group, pos=cur_pos-start,
+                                 scope_offset=start, scope=grp_scope)
+
+                    break
+
+        return scope
 
     def sub_context(self, ctx, src):
         """Return context data about R chunks inside RMarkdown document"""
 
-        scope = None
-        pos = self.get_pos(ctx['lnum'], ctx['col'], src)
-
-        pat = re.compile(
-            r'^`{3} \s* \{r([^\}^\n]*)\} \s* \n'
-            r'(.+?)'
-            r'^`{3} \s* $', re.M | re.X | re.S)
-
-        for chunk in pat.finditer(src):
-            if chunk.start() > pos:
-                break
-
-            if chunk.group(2) and chunk.start(2) <= pos and chunk.end(2) > pos:
-                scope = dict(src=chunk.group(2),
-                             pos=pos-chunk.start(2),
-                             scope_offset=chunk.start(2),
-                             scope='r')
-                break
+        scope = self.get_scope(ctx, src)
 
         if not scope:
             return None
@@ -48,7 +58,7 @@ class Scoper(Base):  # pylint: disable=too-few-public-methods
         pos = 0
 
         for numline, line in enumerate(new_src.split("\n")):
-            if (pos <= new_pos) and (pos + len(line) + 1 > new_pos):
+            if pos < new_pos <= pos + len(line) + 1:
                 new_ctx = copy.deepcopy(ctx)
                 new_ctx['scope'] = scope['scope']
                 new_ctx['lnum'] = numline + 1
