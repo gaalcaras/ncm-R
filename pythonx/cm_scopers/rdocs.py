@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Rmarkdown Scoper for Neovim Completion Manager
+Rmarkdown and Rnoweb Scoper for Neovim Completion Manager
 
 by Gabriel Alcaras
 """
@@ -12,7 +12,7 @@ from cm import Base  # pylint: disable=E0401
 
 class Scoper(Base):  # pylint: disable=too-few-public-methods
 
-    """Scoper for RMarkdown"""
+    """Scoper for RMarkdown and Rnoweb"""
 
     scopes = ['rmd', 'rnoweb']
 

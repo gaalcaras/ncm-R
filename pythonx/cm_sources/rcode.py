@@ -9,13 +9,11 @@ from os import listdir, path
 import re
 
 from neovim.api.nvim import NvimError
-from cm import register_source, getLogger, Base  # pylint: disable=E0401
+from cm import register_source  # pylint: disable=E0401
 
-from omnils import Matches  # pylint: disable=E0401
+from rsource import Rsource  # pylint: disable=E0401
 import filtr  # pylint: disable=E0401
 import rlang  # pylint: disable=E0401
-
-LOGGER = getLogger(__name__)
 
 register_source(name='R',
                 priority=9,
@@ -33,16 +31,13 @@ register_source(name='R',
                 ])
 
 
-class Source(Base):  # pylint: disable=R0902
+class Source(Rsource):  # pylint: disable=R0902
     """Completion Manager Source for R language"""
 
     R_WORD = re.compile(r'[\w\$_\.]+$')
 
     def __init__(self, nvim):
         super(Source, self).__init__(nvim)
-
-        self.matches = Matches()
-        self._settings = dict()
 
         self._pkg_loaded = list()
         self._pkg_installed = list()
@@ -52,35 +47,18 @@ class Source(Base):  # pylint: disable=R0902
         self._fnc_matches = list()
         self._obj_matches = list()
 
-    def _error(self, msg, error=''):
-        """Output error in logs and in nvim"""
-
-        msg_format = '[ncm-R] {}'
-        msg_format += ': {}' if error else '{}'
-        msg = msg_format.format(msg, error)
-
-        LOGGER.error(msg)
-        self.message('ERROR', msg)
-
     def cm_setup(self):
         """Set up Source settings"""
 
         try:
-            settings = dict()
-            settings['col1_len'] = self.nvim.eval('g:ncm_r_column1_length')
-            settings['col2_len'] = self.nvim.eval('g:ncm_r_column2_length')
-            settings['col_layout'] = self.nvim.eval('g:ncm_r_column_layout')
-            settings['nvimr'] = self.nvim.eval('$NVIMR_ID')
-            settings['tmpdir'] = self.nvim.eval('g:rplugin_tmpdir')
-            settings['cmpdir'] = self.nvim.eval('g:rplugin_compldir')
-
-            self._settings = settings
+            self._settings['nvimr'] = self.nvim.eval('$NVIMR_ID')
+            self._settings['tmpdir'] = self.nvim.eval('g:rplugin_tmpdir')
+            self._settings['cmpdir'] = self.nvim.eval('g:rplugin_compldir')
         except NvimError:
-            self._error('Can\'t load ncm-R and Nvim-R options. '
+            self._error('Can\'t load Nvim-R options. '
                         'Did you install the Nvim-R plugin?')
             raise
 
-        self.matches.setup(settings)
         self.get_all_pkg_matches()
 
     def update_loaded_pkgs(self):
@@ -110,8 +88,8 @@ class Source(Base):  # pylint: disable=R0902
             self.get_all_pkg_matches()
 
         if new_pkgs:
-            LOGGER.info('[ncm-R] Some loaded packages miss an omni file. '
-                        'Refreshing matches...')
+            self._info('Some loaded packages miss an omni file. '
+                       'Refreshing matches...')
             self.get_all_pkg_matches()
 
         return 1
@@ -181,8 +159,7 @@ class Source(Base):  # pylint: disable=R0902
         """Update function matches if necessary"""
 
         if self.update_loaded_pkgs():
-            LOGGER.info('[ncm-R] Update loaded R packages: %s',
-                        self._pkg_loaded)
+            self._info('Update loaded R packages: %s', self._pkg_loaded)
             funcs = filtr.pkg(self._all_matches, self._pkg_loaded)
             funcs = filtr.struct(funcs, 'function')
             self._fnc_matches = funcs
@@ -285,8 +262,8 @@ class Source(Base):  # pylint: disable=R0902
 
         pipe = rlang.get_pipe(cur_buffer, lnum, col)
 
-        LOGGER.info('[ncm-R] word: "%s", func: "%s", pkg: %s, pipe: %s',
-                    word, func, pkg, pipe)
+        self._info('word: "{}", func: "{}", pkg: {}, pipe: {}'.format(
+            word, func, pkg, pipe))
 
         if func:
             matches = self.get_func_matches(func, word, pipe)
@@ -296,5 +273,4 @@ class Source(Base):  # pylint: disable=R0902
 
             matches = self.get_matches(word, pkg=pkg)
 
-        LOGGER.debug('[ncm-R] matches: %s', matches)
         self.complete(info, ctx, ctx['startcol'], matches)

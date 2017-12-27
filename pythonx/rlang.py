@@ -18,6 +18,7 @@ def get_pipe(buff, numline, numcol):
     :returns: piped data
     """
 
+    pipe = None
     r_pipe = re.compile(r'([\w_\.\$]+)\s?%>%')
     r_block = re.compile(r'<-')
 
@@ -37,7 +38,8 @@ def get_pipe(buff, numline, numcol):
             has_pipe = r_pipe.search(line)
 
             if has_pipe:
-                return has_pipe.group(1)
+                pipe = has_pipe.group(1)
+                break
         else:
             no_pipe += 1
             begin_block = r_block.match(line)
@@ -47,7 +49,9 @@ def get_pipe(buff, numline, numcol):
             if begin_block or no_pipe == 2:
                 # Unless the line clearly begins a block or the line below this
                 # one does not match a pipeline either
-                return None
+                break
+
+    return pipe
 
 
 def get_open_bracket_col(typed=''):
@@ -98,6 +102,7 @@ def get_function(buff, numline, numcol):
     :returns: [package_name, function_name]
     """
 
+    result = list()
     r_func = re.compile((r'((?P<pkg>[\w\._]+)::)?' +
                          r'((?P<fnc>[\w\._]+)\()?[^\(^:]*$'))
     r_param = re.compile(r',\s*$')
@@ -123,7 +128,8 @@ def get_function(buff, numline, numcol):
             if begin_block or no_func == 2:
                 # Unless the line clearly begins a block or the line below this
                 # one does not match an argument either
-                return ['', '']
+                result = ['', '']
+                break
         else:
             line = line[0:open_bracket + 1]
 
@@ -132,10 +138,14 @@ def get_function(buff, numline, numcol):
         pkg = func_match.group('pkg') if func_match else ''
 
         if (pkg and numl == numline - 1) or func:
-            return [pkg, func]
+            result = [pkg, func]
+            break
 
         if numl == 0 and not pkg and not func:
-            return ['', '']
+            result = ['', '']
+            break
+
+    return result
 
 
 def get_option(typed=''):

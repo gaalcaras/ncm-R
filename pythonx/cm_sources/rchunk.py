@@ -1,19 +1,15 @@
 # -*- coding: utf-8 -*-
 """
-R Chunk Options Source for Neovim Completion Manager,
-to be used with nvim-R
+R Chunk Options Source for Neovim Completion Manager
 
 by Gabriel Alcaras
 """
 
-from neovim.api.nvim import NvimError
-from cm import register_source, getLogger, Base  # pylint: disable=E0401
+from cm import register_source  # pylint: disable=E0401
 
-from omnils import Matches  # pylint: disable=E0401
+from rsource import Rsource  # pylint: disable=E0401
 import filtr  # pylint: disable=E0401
 import rlang  # pylint: disable=E0401
-
-LOGGER = getLogger(__name__)
 
 register_source(name='RChunk',
                 priority=9,
@@ -28,7 +24,7 @@ register_source(name='RChunk',
                 ])
 
 
-class Source(Base):  # pylint: disable=R0902
+class Source(Rsource):  # pylint: disable=too-few-public-methods
     """Completion Manager Source for R Chunk options"""
 
     # https://github.com/yihui/yihui.name/blob/master/content/knitr/options.md
@@ -113,54 +109,25 @@ class Source(Base):  # pylint: disable=R0902
     def __init__(self, nvim):
         super(Source, self).__init__(nvim)
 
-        self.matches = Matches()
-        self._settings = dict()
-
         self._options = list()
-
-        try:
-            settings = dict()
-            settings['col1_len'] = self.nvim.eval('g:ncm_r_column1_length')
-            settings['col2_len'] = self.nvim.eval('g:ncm_r_column2_length')
-            settings['col_layout'] = self.nvim.eval('g:ncm_r_column_layout')
-            settings['filetype'] = self.nvim.eval('&filetype')
-        except NvimError as error:
-            self._error('Can\'t load ncm-R options', error)
-            raise
-
-        self._settings = settings
-        self.matches.setup(settings)
-
         options = self.CHUNK_OPTIONS
 
-        if settings['filetype'] == 'rnoweb':
+        if self._settings['filetype'] == 'rnoweb':
             options.extend(self.CHUNK_OPTIONS_TEX)
 
-        if settings['filetype'] == 'rmd':
+        if self._settings['filetype'] == 'rmd':
             options.extend(self.CHUNK_OPTIONS_RMD)
 
         options = sorted(options, key=str.lower)
         self._options = self.matches.from_chunk_options(options)
 
-    def _error(self, msg, error=''):
-        """Output error in logs and in nvim"""
-
-        msg_format = '[ncm-R] R Chunk options: {}'
-        msg_format += ': {}' if error else '{}'
-        msg = msg_format.format(msg, error)
-
-        LOGGER.error(msg)
-        self.message('ERROR', msg)
-
     def cm_refresh(self, info, ctx,):
         """Refresh NCM list of matches"""
 
         matches = self._options
-
         option = rlang.get_option(ctx['typed'])
 
         if option:
             matches = filtr.arg(matches, option)
 
-        LOGGER.debug('[ncm-R] matches: %s', matches)
         self.complete(info, ctx, ctx['startcol'], matches)
