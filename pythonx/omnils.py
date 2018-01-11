@@ -236,6 +236,9 @@ class Match(object):  # pylint: disable=too-few-public-methods
             if quotes:
                 match['snippet'] = lhs + ' = "${1:' + quotes.group(1) + '}"'
             else:
+                if rhs in ('TRUE', 'FALSE'):
+                    rhs = 'TRUE' if rhs == 'FALSE' else 'FALSE'
+
                 match['snippet'] = lhs + ' = ${1:' + rhs + '}'
         else:
             match['snippet'] = lhs + ' = $1'
@@ -275,7 +278,11 @@ class Match(object):  # pylint: disable=too-few-public-methods
                 match['snippet'] = lhs + ' = "${1:' + snip + '}"'
             else:
                 default = rhs
-                match['snippet'] = lhs + ' = ${1:' + default + '}'
+
+                if rhs in ('TRUE', 'FALSE'):
+                    rhs = 'TRUE' if rhs == 'FALSE' else 'FALSE'
+
+                match['snippet'] = lhs + ' = ${1:' + rhs + '}'
         else:
             default = ''
             match['snippet'] = lhs + ' = $1'
