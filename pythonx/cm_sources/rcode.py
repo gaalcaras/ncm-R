@@ -21,6 +21,7 @@ register_source(name='R',
                 word_pattern=r'[\w_\.]+',
                 scoping=True,
                 scopes=['r'],
+                sort=0,
                 early_cache=1,
                 cm_refresh_patterns=[
                     r'\$', r'::', r'"', r"'",
