@@ -2,12 +2,16 @@
 
 # Asynchronous R completion for Neovim and vim 8
 
-![fullscreen screencast](https://user-images.githubusercontent.com/6551953/33690893-e896c35e-dae5-11e7-973d-cc1bffed1fcf.gif)
+[![R completion for Neovim and vim 8 with ncm-R](https://asciinema.org/a/lsy3CMrmrDAK0IW6ABtJD079n.png)](https://asciinema.org/a/lsy3CMrmrDAK0IW6ABtJD079n)
 
-ncm-R extends the
+ncm-R provides asynchronous, as-you-type completion for the R language, as well
+as R documents such as RMarkdown.
+
+It relies on the great plugin
+[nvim-R](https://github.com/jalvesaq/Nvim-R) to get the completion data and
+extends the
 [nvim-completion-manager](https://github.com/roxma/nvim-completion-manager)
-(NCM) framework to provide asynchronous completion for the R language. It relies on the great plugin
-[nvim-R](https://github.com/jalvesaq/Nvim-R) to get the completion data.
+(NVM) framework for the completion.
 
 **Table of contents:**
 <!-- vim-markdown-toc GFM -->
@@ -24,6 +28,7 @@ ncm-R extends the
 * [Contributing to ncm-R](#contributing-to-ncm-r)
   * [Overview](#overview)
   * [Debugging](#debugging)
+  * [Contributors](#contributors)
 
 <!-- vim-markdown-toc -->
 
@@ -31,41 +36,38 @@ ncm-R extends the
 
 ### Completion
 
-**Objects** from the global R environment :
-
-![variables](https://user-images.githubusercontent.com/6551953/33718172-ce45f746-db5c-11e7-878f-818f5a7059b3.gif)
-
-**Functions** from loaded packages or from specific package with `package::`:
-
-![functions](https://user-images.githubusercontent.com/6551953/33718180-d4510ff4-db5c-11e7-9536-8e8b52f9630f.gif)
-
-**Packages** inside `library()` and `require()`:
-
-![library](https://user-images.githubusercontent.com/6551953/33718181-d47e22dc-db5c-11e7-9768-385b1c1558fe.gif)
-
-**Datasets** inside `data()`:
-
-![data](https://user-images.githubusercontent.com/6551953/33718183-d49b9f06-db5c-11e7-8c97-a5a1793907a3.gif)
-
-**Arguments** inside functions:
-
-![arguments](https://user-images.githubusercontent.com/6551953/33718185-d4b86816-db5c-11e7-8db8-28df7a95d456.gif)
-
-**Variables inside data transformation pipelines** (`%>%`) **and building ggplots** (`+`):
-
-![pipeline](https://user-images.githubusercontent.com/6551953/33718382-76ee990c-db5d-11e7-9a84-89e790c9e577.gif)
++ **Objects** from the global R environment
++ **Functions** from loaded packages or from specific package with `package::`
++ **Packages** inside `library()` and `require()`
++ **Datasets** inside `data()`
++ **Arguments** inside functions
++ **Variables inside data transformation pipelines** (`%>%`) **and building ggplots** (`+`)
 
 ### Snippets
 
 If [UltiSnips](https://github.com/sirver/UltiSnips) is installed, pressing
 <kbd>Tab</kbd> after selecting a completion suggestion will **expand syntax
-snippets**:
+snippets**. Snippets in ncm-R are designed to help you save a few keystrokes by
+writing some code for you. I find it particularly useful with function
+arguments.
 
-+ `dataframe` -> `dataframe %>%`
-+ `function` -> `function(arg1, arg2, ...)` (expands only arguments with no
-  default value)
-+ `package` -> `package::`
-+ `argument` -> `argument = DEFAULT_VALUE`
+You can see when a snippet is available for a suggestion when a `[+]` appears
+in the pop-up menu.
+
+Here's a list of all available snippets:
+
++ `dataframe` -> `dataframe %>%|`
++ `function` -> `function([arg1], arg2)` (expands only arguments with no
+  default value, you can then <kbd>Tab</kbd> to go to the next argument)
++ `package` -> `package::|`
++ `argument` (use <kbd>Tab</kbd> to go after the end of expanded text):
+  + By default -> `argument = [DEFAULT_VALUE]`
+  + If default value is inside quotes -> `argument = "[default]"`
+  + If default value is a boolean, then use its negation. For instance, if
+    `TRUE` by default then it will expand to `argument = [FALSE]`
+
+`|` stands for the cursor position and `[]` shows the cursor selection after snippet
+expansion.
 
 ### R Markdown and Rnoweb
 
@@ -176,10 +178,13 @@ Nvim-R's
 README](https://github.com/jalvesaq/Nvim-R#the-communication-between-r-and-either-vim-or-neovim)
 and `:help NCM-API`.
 
-Special thanks to @jalvesaq for making several improvements to Nvim-R's API.
-
 ### Debugging
 
 You can run `NVIM_PYTHON_LOG_FILE=nvim.log NVIM_PYTHON_LOG_LEVEL=INFO nvim`
 then look at `nvim.log_py3_cm_core`. You can also `tail -f nvim.log_py3_cm_core
 | grep ncm-R` to get only ncm-R messages.
+
+### Contributors
+
+Special thanks to [@jalvesaq](https://github.com/jalvesaq) for making several
+improvements to Nvim-R's API.
