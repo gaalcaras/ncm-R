@@ -101,8 +101,11 @@ class Source(Rsource):  # pylint: disable=R0902
         globenv_file = path.join(self._settings['tmpdir'],
                                  'GlobalEnvList_' + self._settings['nvimr'])
 
-        with open(globenv_file, 'r') as globenv:
-            objs = [obj.strip() for obj in globenv.readlines()]
+        try:
+            with open(globenv_file, 'r') as globenv:
+                objs = [obj.strip() for obj in globenv.readlines()]
+        except FileNotFoundError:
+            objs = list()
 
         self._obj_matches = self.matches.from_omnils(objs)
 
