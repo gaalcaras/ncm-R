@@ -8,7 +8,17 @@ by Gabriel Alcaras
 import re
 
 
-class Function(object):  # pylint: disable=too-few-public-methods
+def add_snippet(match_dct, snip):
+    """Format snippet to work with ncm2-ultisnips
+
+    :match_dct: match dictionary
+    :snip: string containing the snippet
+    :returns: match with ncm2 snippet
+    """
+    match_dct['user_data'] = {'snippet': snip, 'is_snippet': 1}
+    return match_dct
+
+class Function:  # pylint: disable=too-few-public-methods
 
     """Function object to generate snippet and arguments."""
 
@@ -67,7 +77,7 @@ class Function(object):  # pylint: disable=too-few-public-methods
         self.snippet += ')'
 
 
-class Match(object):  # pylint: disable=too-few-public-methods
+class Match:  # pylint: disable=too-few-public-methods
 
     """NCM match"""
 
@@ -103,11 +113,11 @@ class Match(object):  # pylint: disable=too-few-public-methods
 
         if self.len[column] < self.MIN_LEN[column]:
             return ''
-        else:
-            if brackets:
-                return '{' + value[0:self.len[column] - 3] + '}'
 
-            return value[0:self.len[column] - 1]
+        if brackets:
+            return '{' + value[0:self.len[column] - 3] + '}'
+
+        return value[0:self.len[column] - 1]
 
     def _menu(self, col1='', col2='', col3=''):
         """Return formatted menu depending on column values"""
@@ -174,7 +184,7 @@ class Match(object):  # pylint: disable=too-few-public-methods
         if struct == 'function':
             match = self._process_function(match)
         elif struct in ('data.frame', 'tbl_df'):
-            match['snippet'] = match['word'] + ' %>%$1'
+            add_snippet(match, match['word'] + ' %>%$1')
         elif struct == 'package':
             match = self._process_package(match)
         elif struct == 'argument':
@@ -205,14 +215,14 @@ class Match(object):  # pylint: disable=too-few-public-methods
 
             match['args'].append(self.build(word=arg, struct='argument'))
 
-        match['snippet'] = function.snippet
+        add_snippet(match, function.snippet)
 
         return match
 
     def _process_package(self, match):
         """Process match when it's an R package."""
 
-        match['snippet'] = match['word'] + '::$1'
+        add_snippet(match, match['word'] + '::$1')
         match['menu'] = self._menu(self._col('package', 1),
                                    match['info'])
 
@@ -234,14 +244,14 @@ class Match(object):  # pylint: disable=too-few-public-methods
             quotes = re.search(r'^"(.*)"$', rhs)
 
             if quotes:
-                match['snippet'] = lhs + ' = "${1:' + quotes.group(1) + '}"'
+                add_snippet(match, lhs + ' = "${1:' + quotes.group(1) + '}"')
             else:
                 if rhs in ('TRUE', 'FALSE'):
                     rhs = 'TRUE' if rhs == 'FALSE' else 'FALSE'
 
-                match['snippet'] = lhs + ' = ${1:' + rhs + '}'
+                add_snippet(match, lhs + ' = ${1:' + rhs + '}')
         else:
-            match['snippet'] = lhs + ' = $1'
+            add_snippet(match, lhs + ' = $1')
 
         return match
 
@@ -275,17 +285,17 @@ class Match(object):  # pylint: disable=too-few-public-methods
                         match['args'].append(self.build(word=value,
                                                         struct=struct))
 
-                match['snippet'] = lhs + ' = "${1:' + snip + '}"'
+                add_snippet(match, lhs + ' = "${1:' + snip + '}"')
             else:
                 default = rhs
 
                 if rhs in ('TRUE', 'FALSE'):
                     rhs = 'TRUE' if rhs == 'FALSE' else 'FALSE'
 
-                match['snippet'] = lhs + ' = ${1:' + rhs + '}'
+                add_snippet(match, lhs + ' = ${1:' + rhs + '}')
         else:
             default = ''
-            match['snippet'] = lhs + ' = $1'
+            add_snippet(match, lhs + ' = $1')
 
         col2 = '= ' + default if default else ''
         match['menu'] = self._menu(self._col('option', 1), col2)
@@ -301,7 +311,7 @@ class Match(object):  # pylint: disable=too-few-public-methods
         return match
 
 
-class Matches(object):
+class Matches:
 
     """Transform omnils lines into list of NCM matches"""
 
