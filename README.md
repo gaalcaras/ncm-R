@@ -170,7 +170,8 @@ let g:ncm_r_column_layout = 0
 the box with your [UltiSnips](https://github.com/SirVer/ultisnips)
 configuration. You can learn how to use <kbd>Enter</kbd> to expand snippets
 [here](https://github.com/ncm2/ncm2-ultisnips#vimrc-example) or
-[there](thttps://github.com/ncm2/ncm2-ultisnips) to use <kbd>Tab</kbd>.
+[there](https://github.com/ncm2/ncm2-ultisnips/issues/6#issuecomment-410186456)
+to use <kbd>Tab</kbd>.
 
 ## Contributing to ncm-R
 
