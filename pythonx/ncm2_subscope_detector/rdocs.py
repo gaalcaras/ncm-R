@@ -1,26 +1,28 @@
 # -*- coding: utf-8 -*-
 """
-Rmarkdown and Rnoweb Scoper for Neovim Completion Manager
+Rmarkdown and Rnoweb Scoper for ncm2
 
 by Gabriel Alcaras
 """
 
 import re
 import copy
-from cm import Base  # pylint: disable=E0401
+from ncm2 import Ncm2Base, getLogger # pylint: disable=E0401
+
+LOGGER = getLogger(__name__)
 
 
-class Scoper(Base):  # pylint: disable=too-few-public-methods
+class SubscopeDetector(Ncm2Base):  # pylint: disable=too-few-public-methods
 
     """Scoper for RMarkdown and Rnoweb"""
 
-    scopes = ['rmd', 'rnoweb']
+    scope = ['rmd', 'rnoweb']
 
-    def get_scope(self, ctx, src):
+    def get_scope(self, lnum, ccol, src):
         """Identify scope"""
 
         scope = None
-        cur_pos = self.get_pos(ctx['lnum'], ctx['col'], src)
+        cur_pos = self.lccol2pos(lnum, ccol, src)
 
         pat = re.compile(
             r'^((`{3})|(<<)) \s* (?(2)\{r)([^\n]*) \s* \n'
@@ -45,10 +47,12 @@ class Scoper(Base):  # pylint: disable=too-few-public-methods
 
         return scope
 
-    def sub_context(self, ctx, src):
+    def detect(self, lnum, ccol, src):
         """Return context data about R chunks inside RMarkdown document"""
 
-        scope = self.get_scope(ctx, src)
+        LOGGER.info('[ncmR] subscope :: lnum: %s, ccol: %s, src: %s',
+                    lnum, ccol, src)
+        scope = self.get_scope(lnum, ccol, src)
 
         if not scope:
             return None
@@ -59,18 +63,20 @@ class Scoper(Base):  # pylint: disable=too-few-public-methods
 
         for numline, line in enumerate(new_src.split("\n")):
             if pos < new_pos <= pos + len(line) + 1:
-                new_ctx = copy.deepcopy(ctx)
-                new_ctx['scope'] = scope['scope']
-                new_ctx['lnum'] = numline + 1
-                new_ctx['col'] = new_pos - pos + 1
-                new_ctx['scope_offset'] = scope['scope_offset']
-                new_ctx['scope_len'] = len(new_src)
+                subctx = {}
+                subctx['scope'] = scope['scope']
+                subctx['scope_offset'] = scope['scope_offset']
+                subctx['scope_len'] = len(new_src)
 
-                lnum_col = self.get_lnum_col(scope['scope_offset'], src)
-                new_ctx['scope_lnum'] = lnum_col[0]
-                new_ctx['scope_col'] = lnum_col[1]
-                return new_ctx
-            else:
-                pos += len(line) + 1
+                subctx['lnum'] = numline+1
+                subctx['col'] = new_pos - pos + 1
+
+                lnum_col = self.pos2lccol(scope['scope_offset'], src)
+                subctx['scope_lnum'] = lnum_col[0]
+                subctx['scope_ccol'] = lnum_col[1]
+                LOGGER.info('[ncmR] subscope :: subctx2: %s', subctx)
+                return subctx
+
+            pos += len(line) + 1
 
         return None
