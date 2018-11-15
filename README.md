@@ -1,4 +1,4 @@
-:purple_heart: for [#rstats](https://twitter.com/search?q=%23rstats), my [favorite editor](https://neovim.io/) and a nice [completion framework](https://github.com/roxma/nvim-completion-manager)
+:purple_heart: for [#rstats](https://twitter.com/search?q=%23rstats), my [favorite editor](https://neovim.io/) and a nice [completion framework](https://github.com/ncm2/ncm2)
 
 # Asynchronous R completion for Neovim and vim 8
 
@@ -9,9 +9,9 @@ as R documents such as RMarkdown.
 
 It relies on the great plugin
 [nvim-R](https://github.com/jalvesaq/Nvim-R) to get the completion data and
-extends the
-[nvim-completion-manager](https://github.com/roxma/nvim-completion-manager)
-(NVM) framework for the completion.
+extends 
+[ncm2](https://github.com/ncm2/ncm2)
+for the completion.
 
 **Table of contents:**
 <!-- vim-markdown-toc GFM -->
@@ -25,6 +25,7 @@ extends the
 * [Usage](#usage)
   * [General behavior](#general-behavior)
   * [Pop-up menu configuration](#pop-up-menu-configuration)
+  * [Getting the snippets to work](#getting-the-snippets-to-work)
 * [Contributing to ncm-R](#contributing-to-ncm-r)
   * [Overview](#overview)
   * [Debugging](#debugging)
@@ -45,7 +46,8 @@ extends the
 
 ### Snippets
 
-If [UltiSnips](https://github.com/sirver/UltiSnips) is installed, pressing
+If [UltiSnips](https://github.com/sirver/UltiSnips) and its [ncm2
+module](https://github.com/ncm2/ncm2-ultisnips) is installed, pressing
 <kbd>Tab</kbd> after selecting a completion suggestion will **expand syntax
 snippets**. Snippets in ncm-R are designed to help you save a few keystrokes by
 writing some code for you. I find it particularly useful with function
@@ -97,7 +99,8 @@ Use your favorite plugin manager. For instance, with
 [vim-plug](https://github.com/junegunn/vim-plug) :
 
 ```vim
-Plug 'roxma/nvim-completion-manager'
+Plug 'ncm2/ncm2'
+Plug 'roxma/nvim-yarp'
 Plug 'jalvesaq/Nvim-R'
 Plug 'gaalcaras/ncm-R'
 
@@ -108,13 +111,14 @@ endif
 
 " Optional: for snippet support
 Plug 'sirver/UltiSnips'
+Plug 'ncm2/ncm2-ultisnips'
 
 " Optional: better Rnoweb support (LaTeX completion)
 Plug 'lervag/vimtex'
 ```
 
-Please make sure that you fulfill all [NCM
-requirements](https://github.com/roxma/nvim-completion-manager#requirements),
+Please make sure that you fulfill all [ncm2
+requirements](https://github.com/ncm2/ncm2#requirements),
 especially if you use vim 8.
 
 ## Usage
@@ -160,6 +164,14 @@ column padding:
 let g:ncm_r_column_layout = 0
 ```
 
+### Getting the snippets to work
+
+[ncm2-ultisnips](https://github.com/ncm2/ncm2-ultisnips) might not work out of
+the box with your [UltiSnips](https://github.com/SirVer/ultisnips)
+configuration. You can learn how to use <kbd>Enter</kbd> to expand snippets
+[here](https://github.com/ncm2/ncm2-ultisnips#vimrc-example) or
+[there](thttps://github.com/ncm2/ncm2-ultisnips) to use <kbd>Tab</kbd>.
+
 ## Contributing to ncm-R
 
 ### Overview
@@ -173,16 +185,16 @@ Nvim-R is in charge of generating and updating the completion data:
 | objects from packages | `pack_descriptions` and `omnils_*` files in `g:rplugin_compldir` |
 
 ncm-R then retrieves the completion data, parses the buffer and feeds candidate
-matches to NCM's API.  For more information, please check out [this section of
+matches to ncm2's API.  For more information, please check out [this section of
 Nvim-R's
 README](https://github.com/jalvesaq/Nvim-R#the-communication-between-r-and-either-vim-or-neovim)
-and `:help NCM-API`.
+and `:help ncm2-API`.
 
 ### Debugging
 
-You can run `NVIM_PYTHON_LOG_FILE=nvim.log NVIM_PYTHON_LOG_LEVEL=INFO nvim`
-then look at `nvim.log_py3_cm_core`. You can also `tail -f nvim.log_py3_cm_core
-| grep ncm-R` to get only ncm-R messages.
+You can run `NVIM_PYTHON_LOG_FILE=/tmp/log NVIM_PYTHON_LOG_LEVEL=INFO nvim`
+then look at `nvim.log_py3_ncm_r`. You can also `tail -f nvim.log_py3_*
+| grep ncmR` to get only ncm-R messages.
 
 ### Contributors
 
