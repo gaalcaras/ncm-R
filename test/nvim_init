@@ -1,0 +1,7 @@
+#!/bin/bash
+
+export NVIM_PYTHON_LOG_FILE=/tmp/log
+export NVIM_PYTHON_LOG_LEVEL=DEBUG
+export NVIM_LISTEN_ADDRESS=/tmp/nvim-ncmr2
+
+nvim -u "test/min_vimrc"

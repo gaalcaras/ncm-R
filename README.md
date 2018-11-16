@@ -197,6 +197,11 @@ You can run `NVIM_PYTHON_LOG_FILE=/tmp/log NVIM_PYTHON_LOG_LEVEL=INFO nvim`
 then look at `nvim.log_py3_ncm_r`. You can also `tail -f nvim.log_py3_*
 | grep ncmR` to get only ncm-R messages.
 
+Some tests can be run. The idea is to have two windows side to side (using
+tmux, i3 or whatever you like). In one window, run `./test/nvim_init` and monitor
+what happens in Neovim. On the other window, run `python test/test_ncmr.py`: it
+will guide you through the different test cases.
+
 ### Contributors
 
 Special thanks to [@jalvesaq](https://github.com/jalvesaq) for making several

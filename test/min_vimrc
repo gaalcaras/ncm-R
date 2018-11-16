@@ -1,0 +1,14 @@
+call plug#begin('~/.vim/plugged')
+
+Plug 'ncm2/ncm2'
+Plug 'roxma/nvim-yarp'
+
+Plug 'javelsaq/Nvim-R'
+
+let local_ncmr = getcwd()
+Plug local_ncmr
+
+call plug#end()
+
+autocmd BufEnter * call ncm2#enable_for_buffer()
+set completeopt=noinsert,menuone,noselect
