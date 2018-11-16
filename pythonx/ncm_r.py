@@ -206,7 +206,9 @@ class Source(Rsource):  # pylint: disable=R0902
         # Get functions from loaded R packages
         self.update_func_matches()
         func_m = filtr.pkg(self._fnc_matches, pkg)
-        func_m.extend(self._pkg_matches)
+
+        if not pkg:
+            func_m.extend(self._pkg_matches)
 
         if not pkg or (pkg and word):
             func_m = filtr.word(func_m, word)

@@ -69,6 +69,7 @@ NVIM.feedkeys('A')
 TEST.ask()
 
 NVIM.command("call StartR('R')")
+send_rcmd("library('stringr')")
 
 # ==== FUNCTION COMPLETION ==== #
 TEST = TestCase('Is ncm-R suggesting mean?', ['mea'])
@@ -80,12 +81,16 @@ NVIM.feedkeys('A')
 TEST3.ask()
 
 TEST = TestCase('Is ncm-R suggesting ONLY stringr functions?', ['stringr::'])
-send_rcmd("library('stringr')")
 NVIM.feedkeys('A')
 TEST.ask()
 
 # ==== ARGUMENT COMPLETION ==== #
 TEST = TestCase('Is ncm-R suggesting ONLY mean arguments?', ['mean('])
+NVIM.feedkeys('A')
+TEST.ask()
+
+TEST = TestCase('Is ncm-R suggesting ONLY str_extract arguments?',
+                ['stringr::str_extract('])
 NVIM.feedkeys('A')
 TEST.ask()
 
