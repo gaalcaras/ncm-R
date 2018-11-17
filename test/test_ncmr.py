@@ -21,6 +21,7 @@ except FileNotFoundError:
 # SPECIAL KEYS
 DOWN = NVIM.replace_termcodes('<down>')
 RETURN = NVIM.replace_termcodes('<return>')
+ESC = NVIM.replace_termcodes('<esc>')
 TAB = NVIM.replace_termcodes('<tab>')
 CTRL_E = NVIM.replace_termcodes('<C-e>')
 
@@ -32,12 +33,12 @@ class TestCase: # pylint: disable=too-few-public-methods
 
     """Setup ncm-R test case"""
 
-    def __init__(self, question='', buf=None, expected=None):
+    def __init__(self, question='', buf=None, expected=None, ftype='R'):
         # RESET NVIM
         NVIM.feedkeys(CTRL_E) # Close popup menu if still open
         NVIM.command('stopinsert')
         NVIM.command('silent bwipeout!')
-        NVIM.command('e! /tmp/test.R')
+        NVIM.command('e! /tmp/test.{}'.format(ftype))
 
         # PREP BUFFER
         buf = [] if buf is None else buf
@@ -69,6 +70,7 @@ class TestCase: # pylint: disable=too-few-public-methods
         while True:
             choice = input('{} [y/n] '.format(self._question)).lower()
             if choice in yes_opt:
+                NVIM.feedkeys(ESC)
                 return True
 
             if choice in no_opt:
@@ -193,6 +195,12 @@ TEST = TestCase('Has ncm-R correctly expanded the argument with default value?',
                 'geom_point(stat = "foo"')
 feedkeys(['A', DOWN, TAB, 'foo'])
 TEST.check()
+
+# ==== RMARKDOWN ==== #
+TEST = TestCase('Is ncm-R working inside Rmd block?',
+                ['```r', 'library(', '```'])
+feedkeys([DOWN, 'A'])
+TEST.ask()
 
 # ==== IT'S  OVER ==== #
 TEST = TestCase(r'Testing is over \o/')
