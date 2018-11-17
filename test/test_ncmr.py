@@ -6,6 +6,7 @@ by Gabriel Alcaras
 """
 
 import sys
+import time
 
 from neovim import attach
 
@@ -20,6 +21,7 @@ except FileNotFoundError:
 # SPECIAL KEYS
 DOWN = NVIM.replace_termcodes('<down>')
 RETURN = NVIM.replace_termcodes('<return>')
+TAB = NVIM.replace_termcodes('<tab>')
 CTRL_E = NVIM.replace_termcodes('<C-e>')
 
 def send_rcmd(cmd):
@@ -30,7 +32,7 @@ class TestCase: # pylint: disable=too-few-public-methods
 
     """Setup ncm-R test case"""
 
-    def __init__(self, question='', buf=None):
+    def __init__(self, question='', buf=None, expected=None):
         # RESET NVIM
         NVIM.feedkeys(CTRL_E) # Close popup menu if still open
         NVIM.command('stopinsert')
@@ -39,12 +41,24 @@ class TestCase: # pylint: disable=too-few-public-methods
 
         # PREP BUFFER
         buf = [] if buf is None else buf
-        buf = ['# {}'.format(question), *buf]
+        new_buf = []
+        new_buf.append('# {}'.format(question))
+
+        if expected:
+            new_buf.append(expected)
+
+        new_buf.extend(buf)
+
         nvim_buf = NVIM.current.buffer
-        nvim_buf[:] = buf
+        nvim_buf[:] = new_buf
+
         NVIM.feedkeys(DOWN)
 
+        if expected:
+            NVIM.feedkeys(DOWN)
+
         self._question = question
+        self._expected = expected
 
     def ask(self):
         """Prompt user to answer test question"""
@@ -62,6 +76,23 @@ class TestCase: # pylint: disable=too-few-public-methods
 
             print("Please respond with 'yes' or 'no'\n")
 
+    def check(self):
+        """Automagically check if the test has worked"""
+
+        line = NVIM.current.line
+        if line == self._expected:
+            print('{} [y/n] yes'.format(self._question))
+        else:
+            self.ask()
+
+def feedkeys(keys):
+    """Feed list of keys to NVIM instance"""
+
+    for i, key in enumerate(keys):
+        if i > 0:
+            time.sleep(0.2)
+
+        NVIM.feedkeys(key)
 
 # ==== ERRORS ==== #
 TEST = TestCase('Has ncm-R thrown an error?', ['li'])
@@ -70,6 +101,7 @@ TEST.ask()
 
 NVIM.command("call StartR('R')")
 send_rcmd("library('stringr')")
+send_rcmd("library('ggplot2')")
 
 # ==== FUNCTION COMPLETION ==== #
 TEST = TestCase('Is ncm-R suggesting mean?', ['mea'])
@@ -122,9 +154,45 @@ TEST.ask()
 
 TEST = TestCase('Is ncm-R suggesting sleep variables and geom_point arguments?',
                 ['sleep %>%', '  ggplot() +', '  geom_point('])
-send_rcmd("library('ggplot2')")
 NVIM.feedkeys('2' + DOWN + 'A')
 TEST.ask()
+
+# ==== SNIPPETS ==== #
+TEST = TestCase('Has ncm-R correctly expanded the dataframe snippet?',
+                ['sleep'],
+                'sleep %>%')
+feedkeys(['A', DOWN, TAB])
+TEST.check()
+
+TEST = TestCase('Has ncm-R correctly expanded the function snippet?',
+                ['str_extract'],
+                'str_extract("foo", "bar")')
+feedkeys(['A', DOWN, TAB, '"foo"', TAB, '"bar"'])
+TEST.check()
+
+TEST = TestCase('Has ncm-R correctly expanded the package snippet?',
+                ['string'],
+                'stringr::')
+feedkeys(['A', DOWN, TAB])
+TEST.check()
+
+TEST = TestCase('Has ncm-R correctly expanded the argument?',
+                ['lm(data'],
+                'lm(data = ')
+feedkeys(['A', DOWN, TAB])
+TEST.check()
+
+TEST = TestCase('Has ncm-R correctly expanded the boolean argument?',
+                ['mean(x, na.rm'],
+                'mean(x, na.rm = TRUE')
+feedkeys(['A', DOWN, TAB])
+TEST.check()
+
+TEST = TestCase('Has ncm-R correctly expanded the argument with default value?',
+                ['geom_point(stat'],
+                'geom_point(stat = "foo"')
+feedkeys(['A', DOWN, TAB, 'foo'])
+TEST.check()
 
 # ==== IT'S  OVER ==== #
 TEST = TestCase(r'Testing is over \o/')
