@@ -102,13 +102,13 @@ NVIM.feedkeys('A')
 TEST.ask()
 
 NVIM.command("call StartR('R')")
-send_rcmd("library('stringr')")
-send_rcmd("library('ggplot2')")
 
 # ==== FUNCTION COMPLETION ==== #
 TEST = TestCase('Is ncm-R suggesting mean?', ['mea'])
 NVIM.feedkeys('A')
 TEST.ask()
+
+send_rcmd("library('stringr')")
 
 TEST3 = TestCase('Is ncm-R suggesting base::mean?', ['base::mea'])
 NVIM.feedkeys('A')
@@ -147,6 +147,8 @@ TEST.ask()
 TEST = TestCase('Is ncm-R suggesting sleep variables?', ['sleep$'])
 NVIM.feedkeys('A')
 TEST.ask()
+
+send_rcmd("library('ggplot2')")
 
 # ==== PIPELINES ==== #
 TEST = TestCase('Is ncm-R suggesting sleep variables and mean arguments?',
@@ -198,8 +200,15 @@ TEST.check()
 
 # ==== RMARKDOWN ==== #
 TEST = TestCase('Is ncm-R working inside Rmd block?',
-                ['```r', 'library(', '```'])
+                ['```{r}', 'library(', '```'],
+                ftype='Rmd')
 feedkeys([DOWN, 'A'])
+TEST.ask()
+
+TEST = TestCase('Is ncm-R working inside Rmd chunk?',
+                ['```{r, }', '```'],
+                ftype='Rmd')
+feedkeys(['$i'])
 TEST.ask()
 
 # ==== IT'S  OVER ==== #

@@ -270,12 +270,10 @@ class Match:  # pylint: disable=too-few-public-methods
 
             if quotes:
                 default = quotes.group(1)
-                snip = '"' + default + '"'
 
                 if re.search(r'|', default):
                     values = quotes.group(1).split('|')
-                    default = '"' + values[0] + '"'
-                    snip = ''
+                    default = values[0]
 
                     for value in values:
                         struct = 'value'
@@ -285,7 +283,8 @@ class Match:  # pylint: disable=too-few-public-methods
                         match['args'].append(self.build(word=value,
                                                         struct=struct))
 
-                add_snippet(match, lhs + ' = "${1:' + snip + '}"')
+                add_snippet(match, lhs + ' = "${1:' + default + '}"')
+                default = '"{}"'.format(default)
             else:
                 default = rhs
 

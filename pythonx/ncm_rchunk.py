@@ -5,23 +5,11 @@ R Chunk Options Source for Neovim Completion Manager
 by Gabriel Alcaras
 """
 
-from cm import register_source  # pylint: disable=E0401
+import vim # pylint: disable=E0401
 
 from rsource import Rsource  # pylint: disable=E0401
 import filtr  # pylint: disable=E0401
 import rlang  # pylint: disable=E0401
-
-register_source(name='RChunk',
-                priority=9,
-                abbreviation='RChunk',
-                word_pattern=r'[\w_\.]+',
-                scoping=True,
-                scopes=['rchunk'],
-                early_cache=1,
-                cm_refresh_patterns=[
-                    r',\s?',  # New option
-                    r'=\s?"',  # Option value
-                ])
 
 
 class Source(Rsource):  # pylint: disable=too-few-public-methods
@@ -121,13 +109,24 @@ class Source(Rsource):  # pylint: disable=too-few-public-methods
         options = sorted(options, key=str.lower)
         self._options = self.matches.from_chunk_options(options)
 
-    def cm_refresh(self, info, ctx,):
+    def on_complete(self, ctx):
         """Refresh NCM list of matches"""
 
         matches = self._options
         option = rlang.get_option(ctx['typed'])
 
+        self._info('hello :: typed: {}, ccol: {},'
+                   ' startccol: {}'.format(ctx['typed'],
+                                           ctx['ccol'],
+                                           ctx['startccol']))
+
         if option:
             matches = filtr.arg(matches, option)
 
-        self.complete(info, ctx, ctx['startcol'], matches)
+        self._info(matches)
+        self.complete(ctx, ctx['scope_len'], matches)
+
+
+SOURCE = Source(vim)
+
+on_complete = SOURCE.on_complete
