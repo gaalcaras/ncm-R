@@ -29,9 +29,9 @@ function! ncm_r#init()
 endfunction
 
 function! ncm_r#on_warmup(ctx)
-    call g:ncm_r#proc.jobstart()
+  call g:ncm_r#proc.jobstart()
 endfunction
 
 function! ncm_r#on_complete(ctx)
-    call g:ncm_r#proc.try_notify('on_complete', a:ctx)
+  call g:ncm_r#proc.try_notify('on_complete', a:ctx)
 endfunction

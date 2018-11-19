@@ -97,6 +97,8 @@ class Source(Rsource):  # pylint: disable=too-few-public-methods
     def __init__(self, nvim):
         super(Source, self).__init__(nvim)
 
+        self._info('rchunk :: init')
+
         self._options = list()
         options = self.CHUNK_OPTIONS
 
@@ -115,15 +117,14 @@ class Source(Rsource):  # pylint: disable=too-few-public-methods
         matches = self._options
         option = rlang.get_option(ctx['typed'])
 
-        self._info('hello :: typed: {}, ccol: {},'
-                   ' startccol: {}'.format(ctx['typed'],
-                                           ctx['ccol'],
-                                           ctx['startccol']))
-
         if option:
             matches = filtr.arg(matches, option)
 
-        self._info(matches)
+        self._info('ncm_rchunk :: option: {}, typed: "{}",'
+                   'ccol: {}, scope_len: {}'.format(option, ctx['typed'],
+                                                    ctx['ccol'],
+                                                    ctx['scope_len']))
+
         self.complete(ctx, ctx['scope_len'], matches)
 
 
