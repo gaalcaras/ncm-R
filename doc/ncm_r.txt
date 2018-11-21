@@ -13,7 +13,7 @@
 
 
 
-Version:            0.6
+Version:            1.0
 Original Author:    Gabriel Alcaras <gaby.alcaras@gmail.com>
 License:            GNU GPLv3
 

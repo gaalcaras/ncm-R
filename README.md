@@ -110,6 +110,7 @@ if !has('nvim')
 endif
 
 " Optional: for snippet support
+" Further configuration might be required, read below
 Plug 'sirver/UltiSnips'
 Plug 'ncm2/ncm2-ultisnips'
 
@@ -120,6 +121,9 @@ Plug 'lervag/vimtex'
 Please make sure that you fulfill all [ncm2
 requirements](https://github.com/ncm2/ncm2#requirements),
 especially if you use vim 8.
+
+If snippet completion does not work out of the box, [read
+below](#getting-the-snippets-to-work).
 
 ## Usage
 
@@ -168,10 +172,11 @@ let g:ncm_r_column_layout = 0
 
 [ncm2-ultisnips](https://github.com/ncm2/ncm2-ultisnips) might not work out of
 the box with your [UltiSnips](https://github.com/SirVer/ultisnips)
-configuration. You can learn how to use <kbd>Enter</kbd> to expand snippets
-[here](https://github.com/ncm2/ncm2-ultisnips#vimrc-example) or
-[there](https://github.com/ncm2/ncm2-ultisnips/issues/6#issuecomment-410186456)
-to use <kbd>Tab</kbd>.
+configuration, whether you want to [use
+<kbd>Enter</kbd>](https://github.com/ncm2/ncm2-ultisnips#vimrc-example) or
+use
+[<kbd>Tab</kbd>](https://github.com/gaalcaras/ncm-R/blob/master/test/min_vimrc)
+instead.
 
 ## Contributing to ncm-R
 
@@ -195,7 +200,7 @@ and `:help ncm2-API`.
 
 You can run `NVIM_PYTHON_LOG_FILE=/tmp/log NVIM_PYTHON_LOG_LEVEL=INFO nvim`
 then look at `nvim.log_py3_ncm_r`. You can also `tail -f nvim.log_py3_*
-| grep ncmR` to get only ncm-R messages.
+| grep --color "\[ncmR\]"` to get only ncm-R messages.
 
 Some tests can be run. The idea is to have two windows side to side (using
 tmux, i3 or whatever you like). In one window, run `./test/nvim_init` and monitor
