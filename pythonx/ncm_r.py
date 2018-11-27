@@ -8,7 +8,7 @@ by Gabriel Alcaras
 from os import listdir, path
 import re
 
-from neovim.api.nvim import NvimError
+from neovim.api import NvimError
 import vim # pylint: disable=E0401
 
 from rsource import Rsource  # pylint: disable=E0401

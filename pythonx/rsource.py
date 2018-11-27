@@ -5,7 +5,7 @@ R Source for Neovim Completion Manager
 by Gabriel Alcaras
 """
 
-from neovim.api.nvim import NvimError
+from neovim.api import NvimError
 from ncm2 import getLogger, Ncm2Source  # pylint: disable=E0401
 
 from omnils import Matches  # pylint: disable=E0401
