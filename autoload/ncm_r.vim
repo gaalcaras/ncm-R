@@ -16,6 +16,7 @@ let g:ncm_r#source = extend(get(g:, 'ncm_r', {}), {
             \ 'scope': ['r'],
             \ 'subscope_enable': 1,
             \ 'word_pattern': '[\w_\.]+',
+            \ 'sorter': 'none',
             \ 'complete_pattern': [
             \       '\$', '::', '"', "'",
             \       ',\s', '^\s', '\('
