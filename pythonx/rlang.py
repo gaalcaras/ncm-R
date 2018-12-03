@@ -157,3 +157,18 @@ def get_option(typed=''):
         return pattern.group(1)
 
     return None
+
+
+def get_df_inside_brackets(typed=''):
+    """Return df name when cursor is inside brackets"""
+
+    if not typed:
+        return ''
+
+    df_brackets = re.compile(r'(\w+)\[[^\[\]]*,[^\[\]]*$')
+    df_match = df_brackets.search(typed)
+
+    if df_match:
+        return df_match.group(1)
+
+    return ''

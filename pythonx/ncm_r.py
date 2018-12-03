@@ -177,7 +177,7 @@ class Source(Rsource):  # pylint: disable=R0902
             funcs = filtr.struct(funcs, 'function')
             self._fnc_matches = funcs
 
-    def get_matches(self, word, pkg=None, pipe=None):
+    def get_matches(self, word, pkg=None, pipe=None, data=None):
         """Return function and object matches based on given word
 
         :word: string to filter matches with
@@ -189,9 +189,11 @@ class Source(Rsource):  # pylint: disable=R0902
         self.get_all_obj_matches()
         obj_m = self._obj_matches
 
-        if pipe:
-            # Inside data pipeline, keep variables from piped data
-            obj_m = filtr.word(obj_m, pipe + '$', rm_typed=True)
+        if pipe or data:
+            # Inside data pipeline or data brackets, keep variables from piped
+            # data
+            dataframe = pipe if pipe else data
+            obj_m = filtr.word(obj_m, dataframe + '$', rm_typed=True)
         else:
             if '$' in word:
                 # If we're looking inside a data frame or tibble, only return
@@ -276,12 +278,15 @@ class Source(Rsource):  # pylint: disable=R0902
             return
 
         pipe = rlang.get_pipe(cur_buffer, lnum, col)
+        data = rlang.get_df_inside_brackets(ctx['typed'])
 
-        self._info('word: "{}", func: "{}", pkg: {}, pipe: {}'.format(
-            word, func, pkg, pipe))
+        self._info('word: "{}", func: "{}", pkg: {}, pipe: {}, data: {}'.format(
+            word, func, pkg, pipe, data))
 
         if func:
             matches = self.get_func_matches(func, word, pipe)
+        elif data:
+            matches = self.get_matches(word, data=data)
         else:
             if not word and not pkg:
                 return

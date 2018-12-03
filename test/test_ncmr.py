@@ -144,7 +144,12 @@ send_rcmd("data('sleep')")
 NVIM.feedkeys('A')
 TEST.ask()
 
-TEST = TestCase('Is ncm-R suggesting sleep variables?', ['sleep$'])
+TEST = TestCase('Is ncm-R suggesting sleep variables after "$"?', ['sleep$'])
+NVIM.feedkeys('A')
+TEST.ask()
+
+TEST = TestCase('Is ncm-R suggesting sleep variables inside brackets?',
+                ['sleep[, '])
 NVIM.feedkeys('A')
 TEST.ask()
 
