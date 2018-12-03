@@ -14,6 +14,7 @@ import vim # pylint: disable=E0401
 from rsource import Rsource  # pylint: disable=E0401
 import filtr  # pylint: disable=E0401
 import rlang  # pylint: disable=E0401
+from omnils import add_snippet_var_inside_brackets
 
 
 class Source(Rsource):  # pylint: disable=R0902
@@ -194,6 +195,9 @@ class Source(Rsource):  # pylint: disable=R0902
             # data
             dataframe = pipe if pipe else data
             obj_m = filtr.word(obj_m, dataframe + '$', rm_typed=True)
+
+            if data:
+                obj_m = add_snippet_var_inside_brackets(obj_m)
         else:
             if '$' in word:
                 # If we're looking inside a data frame or tibble, only return
@@ -219,7 +223,7 @@ class Source(Rsource):  # pylint: disable=R0902
 
         return matches
 
-    def get_func_matches(self, func, word, pipe=None):
+    def get_func_matches(self, func, word, pipe=None, data=None):
         """Return matches when completion happens inside function
 
         :func: the name of function
@@ -242,7 +246,7 @@ class Source(Rsource):  # pylint: disable=R0902
             if len(args) > 1:
                 break
 
-        objs = self.get_matches(word, pipe=pipe)
+        objs = self.get_matches(word, pipe=pipe, data=data)
 
         matches = list()
         if pipe:
@@ -284,7 +288,7 @@ class Source(Rsource):  # pylint: disable=R0902
             word, func, pkg, pipe, data))
 
         if func:
-            matches = self.get_func_matches(func, word, pipe)
+            matches = self.get_func_matches(func, word, pipe, data)
         elif data:
             matches = self.get_matches(word, data=data)
         else:

@@ -38,6 +38,8 @@ for the completion.
 ### Completion
 
 + **Objects** from the global R environment
++ **Variables** of a dataframe when selecting columns inside brackets
+  (`dataframe[,]`) or after a `$`
 + **Functions** from loaded packages or from specific package with `package::`
 + **Packages** inside `library()` and `require()`
 + **Datasets** inside `data()`
@@ -59,6 +61,8 @@ in the pop-up menu.
 Here's a list of all available snippets:
 
 + `dataframe` -> `dataframe %>%|`
++ `variable` -> `"variable"|` (only when inside selecting columns of
+  a dataframe inside brackets)
 + `function` -> `function([arg1], arg2)` (expands only arguments with no
   default value, you can then <kbd>Tab</kbd> to go to the next argument)
 + `package` -> `package::|`

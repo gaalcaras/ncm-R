@@ -173,6 +173,12 @@ TEST = TestCase('Has ncm-R correctly expanded the dataframe snippet?',
 feedkeys(['A', DOWN, TAB])
 TEST.check()
 
+TEST = TestCase('Has ncm-R correctly expanded the variable snippet inside brackets?',
+                ['sleep[, ex'],
+                'sleep[, "extra"')
+feedkeys(['A', DOWN, TAB])
+TEST.check()
+
 TEST = TestCase('Has ncm-R correctly expanded the function snippet?',
                 ['str_extract'],
                 'str_extract("foo", "bar")')

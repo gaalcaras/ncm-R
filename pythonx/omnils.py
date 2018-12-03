@@ -362,3 +362,16 @@ class Matches:
             matches.append(self.match.build(word=line, struct='option'))
 
         return matches
+
+
+def add_snippet_var_inside_brackets(matches=None):
+    """Return matches with snippets for variables when selecting columns of
+    a dataframe inside brackets"""
+
+    if matches is None:
+        return matches
+
+    for idx, match in enumerate(matches):
+        matches[idx] = add_snippet(match, '"{}"'.format(match['word']))
+
+    return matches
